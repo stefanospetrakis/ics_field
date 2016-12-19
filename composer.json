@@ -1,0 +1,12 @@
+{
+  "name": "drupal/px_calendar_download",
+  "type": "drupal-module",
+  "description": "A module providing a calendar download as an .ics file",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": { 
+    "eluceo/ical": "^0.11.0",
+    "html2text/html2text": "*"    
+  }
+}
