@@ -9,7 +9,15 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\file\Entity\File;
 use Drupal\px_calendar_download\CalendarDownloadUtil;
-use Drupal\px_calendar_download\CalendarDownloadInvalidParametersException;
+use Drupal\px_calendar_download\CalendarDownloadInvalidPropertiesException;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Entity\EntityFieldManager;
+use Drupal\Core\Utility\Token;
+use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * Plugin implementation of the 'calendar_download_default_widget' widget.
@@ -22,7 +30,72 @@ use Drupal\px_calendar_download\CalendarDownloadInvalidParametersException;
  *   }
  * )
  */
-class CalendarDownloadDefaultWidget extends WidgetBase {
+class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The logger.
+   *
+   * @var Drupal\Core\Logger\LoggerChannelInterface
+   */
+  protected $logger;
+
+  /**
+   * The request.
+   *
+   * @var Symfony\Component\HttpFoundation\Request
+   */
+  protected $request;
+
+  /**
+   * The entity_field.manager service.
+   *
+   * @var Drupal\Core\Entity\EntityFieldManager
+   */
+  protected $entityFieldManager;
+
+  /**
+   * The token service.
+   *
+   * @var Drupal\Core\Utility\Token
+   */
+  protected $tokenService;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct($pluginId,
+                              $pluginDefinition,
+                              FieldDefinitionInterface $fieldDefinition,
+                              array $settings,
+                              array $thirdPartySettings,
+                              Request $request,
+                              Token $tokenService,
+                              EntityFieldManager $entityFieldManager,
+                              LoggerChannelInterface $logger) {
+    parent::__construct($pluginId, $pluginDefinition, $fieldDefinition, $settings, $thirdPartySettings);
+
+    $this->request = $request;
+    $this->tokenService = $tokenService;
+    $this->entityFieldManager = $entityFieldManager;
+    $this->logger = $logger;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $pluginId, $pluginDefinition) {
+    return new static(
+      $pluginId,
+      $pluginDefinition,
+      $configuration['field_definition'],
+      $configuration['settings'],
+      $configuration['third_party_settings'],
+      $container->get('request_stack')->getCurrentRequest(),
+      $container->get('token'),
+      $container->get('entity_field.manager'),
+      $container->get('logger.factory')->get('px_calendar_download')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -34,7 +107,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, FormStateInterface $form_state) {
+  public function settingsForm(array $form, FormStateInterface $formState) {
     $elements = [];
     return $elements;
   }
@@ -50,40 +123,40 @@ class CalendarDownloadDefaultWidget extends WidgetBase {
   /**
    * {@inheritdoc}
    */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
-    $field_definitions = $this->getEntityFieldDefinitions();
-    $element['vsummary'] = [
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $formState) {
+    $fieldDefinitions = $this->getEntityFieldDefinitions();
+    $element['summary'] = [
       '#type' => 'textfield',
       '#placeholder' => t('Summary'),
       '#title' => t('Summary'),
-      '#default_value' => isset($items[$delta]->vsummary) ? $items[$delta]->vsummary : NULL,
+      '#default_value' => isset($items[$delta]->summary) ? $items[$delta]->summary : NULL,
     ];
-    $element['vdescription'] = [
+    $element['description'] = [
       '#type' => 'textarea',
       '#placeholder' => t('Description'),
       '#title' => t('Description'),
-      '#default_value' => isset($items[$delta]->vdescription) ? $items[$delta]->vdescription : NULL,
+      '#default_value' => isset($items[$delta]->description) ? $items[$delta]->description : NULL,
     ];
-    $element['vurl'] = [
+    $element['url'] = [
       '#type' => 'textfield',
       '#placeholder' => t('URL'),
       '#title' => t('URL'),
-      '#default_value' => isset($items[$delta]->vurl) ? $items[$delta]->vurl : NULL,
+      '#default_value' => isset($items[$delta]->url) ? $items[$delta]->url : NULL,
     ];
-    $token_tree = [];
-    foreach ($field_definitions as $field_name => $field_definition) {
-      $token_tree['[node:' . $field_name . ']'] = [
-        'name' => $field_definition->getLabel(),
+    $tokenTree = [];
+    foreach ($fieldDefinitions as $fieldName => $fieldDefinition) {
+      $tokenTree['[node:' . $fieldName . ']'] = [
+        'name' => $fieldDefinition->getLabel(),
         'tokens' => [],
       ];
     }
-    $element['vtokens'] = [
+    $element['tokens'] = [
       '#type' => 'details',
       '#title' => t('Tokens'),
       'tokenlist' => [
         '#type' => 'token_tree_table',
         '#columns' => ['token', 'name'],
-        '#token_tree' => $token_tree,
+        '#token_tree' => $tokenTree,
       ],
     ];
 
@@ -103,113 +176,154 @@ class CalendarDownloadDefaultWidget extends WidgetBase {
    */
   public function massageFormValues(array $values,
                                     array $form,
-                                    FormStateInterface $form_state) {
-    $entity = $form_state->getFormObject()->getEntity();
-    if ($entity->getEntityTypeId() === 'node') {
-      $field_definitions = $this->getEntityFieldDefinitions();
-      foreach ($form_state->getValues() as $key => $value) {
-        if (isset($field_definitions[$key])) {
-          try {
-            $entity->set($key, $value);
-          }
-          catch (\InvalidArgumentException $iae) {
-            \Drupal::logger('px_calendar_download')->error($iae->getMessage());
+                                    FormStateInterface $formState) {
+    $formObject = $formState->getFormObject();
+    if ($formObject instanceof EntityForm) {
+      $entity = $formObject->getEntity();
+      if ($entity->getEntityTypeId() === 'node') {
+        $fieldDefinitions = $this->getEntityFieldDefinitions();
+        foreach ($formState->getValues() as $key => $value) {
+          if (isset($fieldDefinitions[$key])) {
+            try {
+              $entity->set($key, $value);
+            }
+            catch (\InvalidArgumentException $e) {
+              $this->logger->error($e->getMessage());
+            }
           }
         }
-      }
-      foreach ($values as $key => &$value) {
-        $this->updateManagedCalFile($value, $entity);
+        foreach ($values as $key => &$value) {
+          $this->updateManagedCalFile($value, $entity);
+        }
       }
     }
     return $values;
-
   }
 
   /**
    * Generate and save an .ics file.
+   *
+   * @param mixed[] $formValue
+   *   Incoming array with the form values of the widget.
+   * @param EntityInterface $entity
+   *   Incoming content entity with the rest of the entity's submitted values.
    */
-  private function updateManagedCalFile(array &$value, $entity) {
-    $cal_params = [];
-    // Set default timezone
-    // Note: Use the following if we want to use the site's timezone.
-    // $cal_params['timezone'] = \Drupal::config('system.date')->get('timezone.default');
-    $cal_params['timezone'] = drupal_get_user_timezone();
-    // Use the hostname to set the PRODID field
-    $cal_params['prodid'] = \Drupal::request()->getHost();
-    // Uses token replacement to interpolate tokens in the field's fields that support them.
-    $cal_params['summary'] = \Drupal::token()->replace($value['vsummary'], [$entity->getEntityTypeId() => $entity]);
-    $cal_params['url'] = \Drupal::token()->replace($value['vurl'], [$entity->getEntityTypeId() => $entity]);
-    $cal_params['description'] = \Drupal::token()->replace($value['vdescription'], [$entity->getEntityTypeId() => $entity]);
-    $cal_params['uuid'] = $entity->uuid();
-
-    $cal_params['dates'] = [];
-    $vdate_field = $this->fieldDefinition->getSetting('vdate_field');
-    if (!empty($vdate_field)) {
-      foreach ($entity->$vdate_field->getValue() as $date_val) {
-        if (!$date_val['value'] instanceof DrupalDateTime) {
-          continue;
-        }
-        $cal_params['dates'][] = $date_val['value']->render();
-      }
+  private function updateManagedCalFile(array &$formValue, EntityInterface $entity) {
+    $calendarProperties = $this->instantiateCalendarProperties($formValue, $entity);
+    if (!empty($calendarProperties['dates_list'])) {
       try {
-        $ics_file_str = CalendarDownloadUtil::generateCalFileAsString($cal_params);
-        // Create a new managed file, if there is no
-        // existing one and give it a persistent
-        // unique file name (i.e. entity's uuid).
-        if (empty($value['vfileref'])) {
-          $uri_scheme = $this->fieldDefinition->getSetting('uri_scheme');
-          $file_directory = $this->fieldDefinition->getSetting('file_directory');
-          $token_service = \Drupal::service('token');
-          $upload_location = $token_service->replace($uri_scheme . '://' . $file_directory);
-          if (file_prepare_directory($upload_location, FILE_CREATE_DIRECTORY)) {
-            $file_name = $entity->uuid() . "_event.ics";
-            $file = file_save_data($ics_file_str, $upload_location . '/' . $file_name, FILE_EXISTS_REPLACE);
-            $value['vfileref'] = $file->id();
-          }
-        }
-        // Overwrite an existing managed file.
-        else {
-          $file = File::load($value['vfileref']);
-          $file_uri = $file->getFileUri();
-          file_save_data($ics_file_str, $file_uri, FILE_EXISTS_REPLACE);
-        }
-      }
-      catch (CalendarDownloadInvalidParametersException $e) {
-        // Do something useful with this specific exception.
+        $calendarDownloadUtil = new CalendarDownloadUtil($calendarProperties, $this->request);
+        $icsFileStr = $calendarDownloadUtil->generate();
+        $formValue['fileref'] = $this->saveManagedCalendarFile($entity, $icsFileStr, isset($formValue['fileref']) ? $formValue['fileref'] : 0);
       }
       catch (Exception $e) {
-        // Do something useful with this general exception.
+        $this->logger->error($e->getMessage());
       }
-      return;
     }
   }
 
   /**
-   * Get the fields and properties attached to this entity.
+   * Instantiate the calendar's properties.
+   *
+   * @param mixed[] $formValue
+   *   Incoming array with the form values of the widget.
+   * @param EntityInterface $entity
+   *   Incoming content entity with the rest of the entity's submitted values.
+   *
+   * @return string[]
+   *   Returns an array of instantiated calendarProperties.
+   */
+  private function instantiateCalendarProperties(array $formValue, EntityInterface $entity) {
+    $calendarProperties = [];
+    // Set default timezone
+    // Note: Use the following if we want to use the site's timezone.
+    // $calendarProperties['timezone'] = \Drupal::config('system.date')->get('timezone.default');
+    $calendarProperties['timezone'] = drupal_get_user_timezone();
+    // Use the hostname to set the 'product_identifier' value.
+    $calendarProperties['product_identifier'] = $this->request->getHost();
+    // Uses token replacement to interpolate tokens in the field's fields that support them.
+    $calendarProperties['summary'] = $this->tokenService->replace($formValue['summary'], [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['url'] = $this->tokenService->replace($formValue['url'], [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['description'] = $this->tokenService->replace($formValue['description'], [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['uuid'] = $entity->uuid() . $this->fieldDefinition->uuid();
+
+    $calendarProperties['dates_list'] = [];
+    $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
+    if (!empty($dateFieldReference)) {
+      foreach ($entity->$dateFieldReference->getValue() as $dateVal) {
+        if (!$dateVal['value'] instanceof DrupalDateTime) {
+          continue;
+        }
+        $calendarProperties['dates_list'][] = $dateVal['value']->render();
+      }
+    }
+    return $calendarProperties;
+  }
+
+  /**
+   * Create/Update managed ical file.
+   *
+   * @param EntityInterface $entity
+   *   Incoming content entity with the rest of the entity's submitted values.
+   * @param string $icsFileStr
+   *   The ics file as a string.
+   * @param int $fileId
+   *   The file id of the managed ical file.
+   *
+   * @return int
+   *   Returns the file id of the created/updated file.
+   */
+  private function saveManagedCalendarFile(EntityInterface $entity, string $icsFileStr, int $fileId = 0) {
+    // Overwrite an existing managed file.
+    if ($fileId > 0) {
+      $file = File::load($fileId);
+      $fileUri = $file->getFileUri();
+      file_save_data($icsFileStr, $fileUri, FILE_EXISTS_REPLACE);
+      return $fileId;
+    }
+    // Create a new managed file, if there is no
+    // existing one and give it a persistent
+    // unique file name (i.e. entity's uuid).
+    else {
+      $uriScheme = $this->fieldDefinition->getSetting('uri_scheme');
+      $fileDirectory = $this->fieldDefinition->getSetting('file_directory');
+      $uploadLocation = $this->tokenService->replace($uriScheme . '://' . $fileDirectory);
+      if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
+        $fileName = md5($entity->uuid() . $this->fieldDefinition->uuid()) . "_event.ics";
+        $file = file_save_data($icsFileStr, $uploadLocation . '/' . $fileName, FILE_EXISTS_REPLACE);
+        return $file->id();
+      }
+    }
+  }
+
+  /**
+   * Get the fields/properties from the entity the widget is attached to.
+   *
+   * @return FieldDefinitionInterface[]
+   *   An array of FieldDefinitionInterfaces for all fields/properties.
    */
   private function getEntityFieldDefinitions() {
-    $att_bundle = $this->fieldDefinition->get('bundle');
-    $att_entity_type = $this->fieldDefinition->get('entity_type');
-    $entityFieldManager = \Drupal::service('entity_field.manager');
-    $field_definitions = [];
-    $field_definitions = array_filter(
-      $entityFieldManager->getBaseFieldDefinitions($att_entity_type), function ($field_definition) {
-        return $field_definition instanceof FieldDefinitionInterface;
+    $attBundle = $this->fieldDefinition->get('bundle');
+    $attEntityType = $this->fieldDefinition->get('entity_type');
+    $fieldDefinitions = [];
+    $fieldDefinitions = array_filter(
+      $this->entityFieldManager->getBaseFieldDefinitions($attEntityType), function ($fieldDefinition) {
+        return $fieldDefinition instanceof FieldDefinitionInterface;
       }
     ) + array_filter(
-      $entityFieldManager->getFieldDefinitions($att_entity_type, $att_bundle), function ($field_definition) {
-        return $field_definition instanceof FieldDefinitionInterface;
+      $this->entityFieldManager->getFieldDefinitions($attEntityType, $attBundle), function ($fieldDefinition) {
+        return $fieldDefinition instanceof FieldDefinitionInterface;
       }
     );
     // Do not include ourselves in the list of fields that we'll use
     // for token replacement.
-    foreach ($field_definitions as $field_name => $field_definition) {
-      if ($field_name == $this->fieldDefinition->get('field_name')) {
-        unset($field_definitions[$field_name]);
+    foreach ($fieldDefinitions as $fieldName => $fieldDefinition) {
+      if ($fieldName == $this->fieldDefinition->get('field_name')) {
+        unset($fieldDefinitions[$fieldName]);
         break;
       }
     }
-    return $field_definitions;
+    return $fieldDefinitions;
   }
 
 }

@@ -34,10 +34,10 @@ class CalendarDownloadDefaultFormatter extends FormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, FormStateInterface $form_state) {
+  public function settingsForm(array $form, FormStateInterface $formState) {
     return [
       // Implement settings form.
-    ] + parent::settingsForm($form, $form_state);
+    ] + parent::settingsForm($form, $formState);
   }
 
   /**
@@ -69,22 +69,22 @@ class CalendarDownloadDefaultFormatter extends FormatterBase {
    * @param \Drupal\Core\Field\FieldItemInterface $item
    *   One field item.
    *
-   * @return string
+   * @return mixed[]|null
    *   A render array for a link element.
    */
   protected function viewValue(FieldItemInterface $item) {
-    $vfileref = $item->get('vfileref')->getValue();
-    $file = File::load($vfileref);
+    $fileref = $item->get('fileref')->getValue();
+    $file = File::load($fileref);
     if ($file) {
-      $file_url_obj = Url::fromUri(file_create_url($file->getFileUri()));
+      $fileUrlObj = Url::fromUri(file_create_url($file->getFileUri()));
       $build = [
         '#type' => 'link',
         '#title' => $this->t('iCal Download'),
-        '#url' => $file_url_obj,
+        '#url' => $fileUrlObj,
       ];
       return $build;
     }
-    return "";
+    return NULL;
   }
 
 }

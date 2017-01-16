@@ -10,7 +10,7 @@ use Drupal\simpletest\WebTestBase;
  *
  * @group px_calendar_download
  */
-class LoadTest extends WebTestBase{
+class LoadTest extends WebTestBase {
 
   /**
    * Modules to enable.

@@ -14,6 +14,8 @@ use Symfony\Component\DomCrawler\Crawler;
 class CalendarDownloadNodeFormTest extends BrowserTestBase {
 
   /**
+   * The admin user used in the tests.
+   *
    * @var \Drupal\Core\Session\AccountInterface
    */
   protected $adminUser;
@@ -21,13 +23,15 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
   /**
    * Exempt from strict schema checking.
    *
-   * @see \Drupal\Core\Config\Testing\ConfigSchemaChecker
-   *
    * @var bool
+   *
+   * @see \Drupal\Core\Config\Testing\ConfigSchemaChecker
    */
   protected $strictConfigSchema = FALSE;
 
   /**
+   * A node created for testing.
+   *
    * @var \Drupal\node\Entity\Node
    */
   protected $testNode;
@@ -37,7 +41,13 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['field_ui', 'node', 'datetime', 'px_calendar_download', 'file'];
+  public static $modules = [
+    'field_ui',
+    'node',
+    'datetime',
+    'px_calendar_download',
+    'file',
+  ];
 
   /**
    * {@inheritdoc}
@@ -53,12 +63,12 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
 
     $this->drupalLogin($this->adminUser);
 
-    $node_type = NodeType::create([
+    $nodeType = NodeType::create([
       'type' => 'article',
       'name' => 'Article',
       'description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
     ]);
-    $node_type->save();
+    $nodeType->save();
 
     entity_create('field_storage_config', array(
       'field_name' => 'field_dates',
@@ -72,32 +82,32 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
       'entity_type' => 'node',
       'bundle' => 'article',
     ))->save();
-    // S.O.S.: Need to set the widget type, otherwise the form will not contain it.
+    // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
       ->setComponent('field_dates', [
         'type' => 'datetime_default',
       ])
       ->save();
 
-    $field_ics_download = entity_create('field_storage_config', [
+    $fieldIcsDownload = entity_create('field_storage_config', [
       'field_name' => 'field_ics_download',
       'entity_type' => 'node',
       'type' => 'calendar_download_type',
     ]);
-    $field_ics_download->setSettings([
-      'vdate_field' => 'field_dates',
+    $fieldIcsDownload->setSettings([
+      'date_field_reference' => 'field_dates',
       'is_ascii' => FALSE,
       'uri_scheme' => 'public',
       'file_directory' => 'icsfiles',
     ]);
-    $field_ics_download->save();
+    $fieldIcsDownload->save();
     entity_create('field_config', array(
       'field_name' => 'field_ics_download',
       'label' => 'ICS Download',
       'entity_type' => 'node',
       'bundle' => 'article',
     ))->save();
-    // S.O.S.: Need to set the widget type, otherwise the form will not contain it.
+    // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
       ->setComponent('field_ics_download', [
         'type' => 'calendar_download_default_widget',
@@ -121,7 +131,7 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
       'entity_type' => 'node',
       'bundle' => 'article',
     ))->save();
-    // S.O.S.: Need to set the widget type, otherwise the form will not contain it.
+    // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
       ->setComponent('field_body', [
         'type' => 'text_textarea_with_summary',
@@ -145,16 +155,16 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
 
     // Create a random date in the coming week.
     $timestamp = REQUEST_TIME + mt_rand(0, 86400 * 7);
-    $date_value_0_date = gmdate(DATETIME_DATE_STORAGE_FORMAT, $timestamp);
-    $date_value_0_time = gmdate('H:i:s', $timestamp);
+    $dateValue0Date = gmdate(DATETIME_DATE_STORAGE_FORMAT, $timestamp);
+    $dateValue0Time = gmdate('H:i:s', $timestamp);
 
     $add = [
       'title[0][value]' => 'A calendar event',
-      'field_dates[0][value][date]' => $date_value_0_date,
-      'field_dates[0][value][time]' => $date_value_0_time,
+      'field_dates[0][value][date]' => $dateValue0Date,
+      'field_dates[0][value][time]' => $dateValue0Time,
       'field_body[0][value]' => "Lorem ipsum.",
-      'field_ics_download[0][vsummary]' => '[node:title]',
-      'field_ics_download[0][vdescription]' => '[node:field_body]',
+      'field_ics_download[0][summary]' => '[node:title]',
+      'field_ics_download[0][description]' => '[node:field_body]',
     ];
     $this->drupalPostForm('node/add/article', $add, t('Save and publish'));
 
@@ -168,20 +178,51 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     // Check if there is a link for downloading the ics file.
     $elements = $this->xpath('//a[@href and string-length(@href)!=0 and text() = :label]', [':label' => t('iCal Download')->render()]);
     $el = reset($elements);
-    $download_url = $el->getAttribute('href');
-    $ics_string = file_get_contents($download_url);
+    $downloadUrl = $el->getAttribute('href');
+    $icsString = file_get_contents($downloadUrl);
 
-    // Send a post to the ical_validation_url,
-    // at http://severinghaus.org/projects/icv/
-    $httpClient = \Drupal::httpClient();
-    $ical_validation_url = 'http://severinghaus.org/projects/icv/';
-    $post_array = array(
-      'form_params' => ['snip' => $ics_string],
-    );
-    $response = $httpClient->post($ical_validation_url, $post_array);
-    $crawler = new Crawler($response->getBody()->getContents());
-    $this->assertEquals(1, $crawler->filter('div.message.success')->count());
+    $icalValidationUrl = $this->getExternalCalendalValidationService();
 
+    if ($icalValidationUrl) {
+      // Send a post to the ical_validation_url,
+      // at http://severinghaus.org/projects/icv/
+      $httpClient = \Drupal::httpClient();
+      $postArray = array(
+        'form_params' => ['snip' => $icsString],
+      );
+      $response = $httpClient->post($icalValidationUrl, $postArray);
+      $crawler = new Crawler($response->getBody()->getContents());
+      $this->assertEquals(1, $crawler->filter('div.message.success')->count());
+    }
+    else {
+      // TODO Implement some local validation.
+      // This would imply a need some local code iCal parsing library to
+      // validate the generated string.
+    }
+  }
+
+  /**
+   * Check if ical_validation_url is available.
+   *
+   * @return string|bool
+   *   Returns the ical validation service url, if the website is available,
+   *   false otherwise.
+   */
+  private function getExternalCalendalValidationService() {
+    $icalValidationUrl = 'http://severinghaus.org/projects/icv/';
+
+    $curlInit = curl_init();
+    curl_setopt($curlInit, CURLOPT_URL, $icalValidationUrl);
+    curl_setopt($curlInit, CURLOPT_CONNECTTIMEOUT, 10);
+    curl_setopt($curlInit, CURLOPT_HEADER, FALSE);
+    curl_setopt($curlInit, CURLOPT_NOBODY, FALSE);
+    curl_setopt($curlInit, CURLOPT_RETURNTRANSFER, TRUE);
+    $response = curl_exec($curlInit);
+    curl_close($curlInit);
+    if ($response) {
+      return $icalValidationUrl;
+    }
+    return FALSE;
   }
 
 }

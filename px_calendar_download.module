@@ -10,8 +10,8 @@ use Drupal\Core\Routing\RouteMatchInterface;
 /**
  * Implements hook_help().
  */
-function px_calendar_download_help($route_name, RouteMatchInterface $route_match) {
-  switch ($route_name) {
+function px_calendar_download_help($routeName, RouteMatchInterface $routeMatch) {
+  switch ($routeName) {
     // Main module help for the px_calendar_download module.
     case 'help.page.px_calendar_download':
       $output = '';
