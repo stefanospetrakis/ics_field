@@ -2,22 +2,21 @@
 
 namespace Drupal\px_calendar_download\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Entity\EntityFieldManager;
+use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Utility\Token;
 use Drupal\file\Entity\File;
 use Drupal\px_calendar_download\CalendarDownloadUtil;
-use Drupal\px_calendar_download\CalendarDownloadInvalidPropertiesException;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Entity\EntityFieldManager;
-use Drupal\Core\Utility\Token;
-use Drupal\Core\Logger\LoggerChannelInterface;
-use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\EntityInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Plugin implementation of the 'calendar_download_default_widget' widget.
@@ -35,28 +34,28 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   /**
    * The logger.
    *
-   * @var Drupal\Core\Logger\LoggerChannelInterface
+   * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   protected $logger;
 
   /**
    * The request.
    *
-   * @var Symfony\Component\HttpFoundation\Request
+   * @var \Symfony\Component\HttpFoundation\Request
    */
   protected $request;
 
   /**
    * The entity_field.manager service.
    *
-   * @var Drupal\Core\Entity\EntityFieldManager
+   * @var \Drupal\Core\Entity\EntityFieldManager
    */
   protected $entityFieldManager;
 
   /**
    * The token service.
    *
-   * @var Drupal\Core\Utility\Token
+   * @var \Drupal\Core\Utility\Token
    */
   protected $tokenService;
 
@@ -72,7 +71,11 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
                               Token $tokenService,
                               EntityFieldManager $entityFieldManager,
                               LoggerChannelInterface $logger) {
-    parent::__construct($pluginId, $pluginDefinition, $fieldDefinition, $settings, $thirdPartySettings);
+    parent::__construct($pluginId,
+                        $pluginDefinition,
+                        $fieldDefinition,
+                        $settings,
+                        $thirdPartySettings);
 
     $this->request = $request;
     $this->tokenService = $tokenService;
@@ -82,8 +85,14 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceException
+   * @throws \Symfony\Component\DependencyInjection\Exception\ServiceNotFoundException
    */
-  public static function create(ContainerInterface $container, array $configuration, $pluginId, $pluginDefinition) {
+  public static function create(ContainerInterface $container,
+                                array $configuration,
+                                $pluginId,
+                                $pluginDefinition) {
     return new static(
       $pluginId,
       $pluginDefinition,
@@ -108,61 +117,68 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * {@inheritdoc}
    */
   public function settingsForm(array $form, FormStateInterface $formState) {
-    $elements = [];
-    return $elements;
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   public function settingsSummary() {
-    $summary = [];
-    return $summary;
+    return [];
   }
 
   /**
    * {@inheritdoc}
+   *
+   * @throws \LogicException
    */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $formState) {
+  public function formElement(FieldItemListInterface $items,
+                              $delta,
+                              array $element,
+                              array &$form,
+                              FormStateInterface $formState) {
     $fieldDefinitions = $this->getEntityFieldDefinitions();
     $element['summary'] = [
-      '#type' => 'textfield',
-      '#placeholder' => t('Summary'),
-      '#title' => t('Summary'),
-      '#default_value' => isset($items[$delta]->summary) ? $items[$delta]->summary : NULL,
+      '#type'          => 'textfield',
+      '#placeholder'   => t('Summary'),
+      '#title'         => t('Summary'),
+      '#default_value' => isset($items[$delta]->summary) ?
+        $items[$delta]->summary : NULL,
     ];
     $element['description'] = [
-      '#type' => 'textarea',
-      '#placeholder' => t('Description'),
-      '#title' => t('Description'),
-      '#default_value' => isset($items[$delta]->description) ? $items[$delta]->description : NULL,
+      '#type'          => 'textarea',
+      '#placeholder'   => t('Description'),
+      '#title'         => t('Description'),
+      '#default_value' => isset($items[$delta]->description) ?
+        $items[$delta]->description : NULL,
     ];
     $element['url'] = [
-      '#type' => 'textfield',
-      '#placeholder' => t('URL'),
-      '#title' => t('URL'),
-      '#default_value' => isset($items[$delta]->url) ? $items[$delta]->url : NULL,
+      '#type'          => 'textfield',
+      '#placeholder'   => t('URL'),
+      '#title'         => t('URL'),
+      '#default_value' => isset($items[$delta]->url) ? $items[$delta]->url :
+        NULL,
     ];
     $tokenTree = [];
     foreach ($fieldDefinitions as $fieldName => $fieldDefinition) {
       $tokenTree['[node:' . $fieldName . ']'] = [
-        'name' => $fieldDefinition->getLabel(),
+        'name'   => $fieldDefinition->getLabel(),
         'tokens' => [],
       ];
     }
     $element['tokens'] = [
-      '#type' => 'details',
-      '#title' => t('Tokens'),
+      '#type'     => 'details',
+      '#title'    => t('Tokens'),
       'tokenlist' => [
-        '#type' => 'token_tree_table',
-        '#columns' => ['token', 'name'],
+        '#type'       => 'token_tree_table',
+        '#columns'    => ['token', 'name'],
         '#token_tree' => $tokenTree,
       ],
     ];
 
     // If cardinality is 1, ensure a label is output for the field by wrapping
     // it in a details element.
-    if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() == 1) {
+    if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() === 1) {
       $element += ['#type' => 'fieldset'];
     }
 
@@ -173,6 +189,9 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * {@inheritdoc}
    *
    * @brief: Create/Update the referenced file.
+   *
+   * @throws \LogicException
+   * @throws \UnexpectedValueException
    */
   public function massageFormValues(array $values,
                                     array $form,
@@ -185,9 +204,9 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
         foreach ($formState->getValues() as $key => $value) {
           if (isset($fieldDefinitions[$key])) {
             try {
+              //TODO - entity interface does not implement a set method
               $entity->set($key, $value);
-            }
-            catch (\InvalidArgumentException $e) {
+            } catch (\InvalidArgumentException $e) {
               $this->logger->error($e->getMessage());
             }
           }
@@ -203,20 +222,28 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   /**
    * Generate and save an .ics file.
    *
-   * @param mixed[] $formValue
+   * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
    * @param EntityInterface $entity
    *   Incoming content entity with the rest of the entity's submitted values.
+   *
+   * @throws \UnexpectedValueException
    */
-  private function updateManagedCalFile(array &$formValue, EntityInterface $entity) {
-    $calendarProperties = $this->instantiateCalendarProperties($formValue, $entity);
+  private function updateManagedCalFile(array &$formValue,
+                                        EntityInterface $entity) {
+    $calendarProperties = $this->instantiateCalendarProperties($formValue,
+                                                               $entity);
     if (!empty($calendarProperties['dates_list'])) {
       try {
-        $calendarDownloadUtil = new CalendarDownloadUtil($calendarProperties, $this->request);
+        $calendarDownloadUtil = new CalendarDownloadUtil($calendarProperties,
+                                                         $this->request);
         $icsFileStr = $calendarDownloadUtil->generate();
-        $formValue['fileref'] = $this->saveManagedCalendarFile($entity, $icsFileStr, isset($formValue['fileref']) ? $formValue['fileref'] : 0);
-      }
-      catch (Exception $e) {
+        $formValue['fileref'] = $this->saveManagedCalendarFile($entity,
+                                                               $icsFileStr,
+                                                               isset($formValue['fileref']) ?
+                                                                 $formValue['fileref'] :
+                                                                 0);
+      } catch (\Exception $e) {
         $this->logger->error($e->getMessage());
       }
     }
@@ -225,15 +252,18 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   /**
    * Instantiate the calendar's properties.
    *
-   * @param mixed[] $formValue
+   * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
    * @param EntityInterface $entity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @return string[]
+   *
+   * @throws \UnexpectedValueException
    *   Returns an array of instantiated calendarProperties.
    */
-  private function instantiateCalendarProperties(array $formValue, EntityInterface $entity) {
+  private function instantiateCalendarProperties(array $formValue,
+                                                 EntityInterface $entity) {
     $calendarProperties = [];
     // Set default timezone
     // Note: Use the following if we want to use the site's timezone.
@@ -242,14 +272,19 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     // Use the hostname to set the 'product_identifier' value.
     $calendarProperties['product_identifier'] = $this->request->getHost();
     // Uses token replacement to interpolate tokens in the field's fields that support them.
-    $calendarProperties['summary'] = $this->tokenService->replace($formValue['summary'], [$entity->getEntityTypeId() => $entity]);
-    $calendarProperties['url'] = $this->tokenService->replace($formValue['url'], [$entity->getEntityTypeId() => $entity]);
-    $calendarProperties['description'] = $this->tokenService->replace($formValue['description'], [$entity->getEntityTypeId() => $entity]);
-    $calendarProperties['uuid'] = $entity->uuid() . $this->fieldDefinition->uuid();
+    $calendarProperties['summary'] = $this->tokenService->replace($formValue['summary'],
+                                                                  [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['url'] = $this->tokenService->replace($formValue['url'],
+                                                              [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['description'] = $this->tokenService->replace($formValue['description'],
+                                                                      [$entity->getEntityTypeId() => $entity]);
+    $calendarProperties['uuid'] = $entity->uuid() .
+                                  $this->fieldDefinition->uuid();//TODO - uuid is not a member of fieldDefinition class!
 
     $calendarProperties['dates_list'] = [];
     $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
     if (!empty($dateFieldReference)) {
+      //TODO refactor this to not use $entity->$dateFieldReference form to get value
       foreach ($entity->$dateFieldReference->getValue() as $dateVal) {
         if (!$dateVal['value'] instanceof DrupalDateTime) {
           continue;
@@ -265,20 +300,24 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @param EntityInterface $entity
    *   Incoming content entity with the rest of the entity's submitted values.
-   * @param string $icsFileStr
+   * @param string          $icsFileStr
    *   The ics file as a string.
-   * @param int $fileId
+   * @param int             $fileId
    *   The file id of the managed ical file.
    *
    * @return int
    *   Returns the file id of the created/updated file.
    */
-  private function saveManagedCalendarFile(EntityInterface $entity, string $icsFileStr, int $fileId = 0) {
+  private function saveManagedCalendarFile(EntityInterface $entity,
+                                           string $icsFileStr,
+                                           int $fileId = 0) {
     // Overwrite an existing managed file.
     if ($fileId > 0) {
       $file = File::load($fileId);
       $fileUri = $file->getFileUri();
-      file_save_data($icsFileStr, $fileUri, FILE_EXISTS_REPLACE);
+      if (!file_save_data($icsFileStr, $fileUri, FILE_EXISTS_REPLACE)) {
+        $this->handleFileSaveError($fileUri);
+      }
       return $fileId;
     }
     // Create a new managed file, if there is no
@@ -287,43 +326,80 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     else {
       $uriScheme = $this->fieldDefinition->getSetting('uri_scheme');
       $fileDirectory = $this->fieldDefinition->getSetting('file_directory');
-      $uploadLocation = $this->tokenService->replace($uriScheme . '://' . $fileDirectory);
+      $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
+                                                     $fileDirectory);
       if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
-        $fileName = md5($entity->uuid() . $this->fieldDefinition->uuid()) . "_event.ics";
-        $file = file_save_data($icsFileStr, $uploadLocation . '/' . $fileName, FILE_EXISTS_REPLACE);
+        //TODO - no uuid method in FieldDefinitionInterface
+        $fileName = md5($entity->uuid() . $this->fieldDefinition->uuid()) .
+                    '_event.ics';
+        $fileUri = $uploadLocation . '/' . $fileName;
+        $file = file_save_data($icsFileStr,
+                               $fileUri,
+                               FILE_EXISTS_REPLACE);
+        if (!$file) {
+          $this->handleFileSaveError($fileUri);
+        }
         return $file->id();
+      } else {
+        $this->handleDirectoryError($uploadLocation);
       }
     }
+    return NULL;
   }
 
   /**
    * Get the fields/properties from the entity the widget is attached to.
    *
    * @return FieldDefinitionInterface[]
+   *
+   * @throws \LogicException
    *   An array of FieldDefinitionInterfaces for all fields/properties.
    */
   private function getEntityFieldDefinitions() {
+    //TODO - FieldDefinitionInterface does not implement a get method
     $attBundle = $this->fieldDefinition->get('bundle');
     $attEntityType = $this->fieldDefinition->get('entity_type');
-    $fieldDefinitions = [];
     $fieldDefinitions = array_filter(
-      $this->entityFieldManager->getBaseFieldDefinitions($attEntityType), function ($fieldDefinition) {
-        return $fieldDefinition instanceof FieldDefinitionInterface;
-      }
-    ) + array_filter(
-      $this->entityFieldManager->getFieldDefinitions($attEntityType, $attBundle), function ($fieldDefinition) {
-        return $fieldDefinition instanceof FieldDefinitionInterface;
-      }
-    );
+                          $this->entityFieldManager->getBaseFieldDefinitions($attEntityType),
+                          function ($fieldDefinition) {
+                            return $fieldDefinition instanceof
+                                   FieldDefinitionInterface;
+                          }
+                        ) + array_filter(
+                          $this->entityFieldManager->getFieldDefinitions($attEntityType,
+                                                                         $attBundle),
+                          function ($fieldDefinition) {
+                            return $fieldDefinition instanceof
+                                   FieldDefinitionInterface;
+                          }
+                        );
     // Do not include ourselves in the list of fields that we'll use
     // for token replacement.
     foreach ($fieldDefinitions as $fieldName => $fieldDefinition) {
-      if ($fieldName == $this->fieldDefinition->get('field_name')) {
+      if ($fieldName === $this->fieldDefinition->get('field_name')) {
         unset($fieldDefinitions[$fieldName]);
         break;
       }
     }
     return $fieldDefinitions;
+  }
+
+  /**
+   * @param string $fileUri
+   */
+  private function handleFileSaveError($fileUri) {
+    $msg = 'Could not save calendar file: ' . $fileUri;
+    drupal_set_message($msg, 'error');
+    $this->logger->error($msg);
+  }
+
+  /**
+   * @param string $uri
+   */
+  private function handleDirectoryError($uri) {
+    $msg = 'Could not create calendar directory: ' . $uri;
+    drupal_set_message($msg, 'error');
+    $this->logger->error($msg);
   }
 
 }
