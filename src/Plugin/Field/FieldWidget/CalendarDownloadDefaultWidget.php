@@ -277,7 +277,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     $calendarProperties['description'] = $this->tokenService->replace($formValue['description'],
                                                                       [$entity->getEntityTypeId() => $entity]);
     $calendarProperties['uuid'] = $entity->uuid() .
-                                  $this->fieldDefinition->uuid();//TODO - uuid is not a member of fieldDefinition class!
+                                  $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid();
 
     $calendarProperties['dates_list'] = [];
     $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
@@ -327,8 +327,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                      $fileDirectory);
       if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
-        //TODO - no uuid method in FieldDefinitionInterface
-        $fileName = md5($entity->uuid() . $this->fieldDefinition->uuid()) .
+        $fileName = md5($entity->uuid() . $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid()) .
                     '_event.ics';
         $fileUri = $uploadLocation . '/' . $fileName;
         $file = file_save_data($icsFileStr,
@@ -354,8 +353,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *   An array of FieldDefinitionInterfaces for all fields/properties.
    */
   private function getEntityFieldDefinitions() {
-    //TODO - FieldDefinitionInterface does not implement a get method
-    $attBundle = $this->fieldDefinition->get('bundle');
+    $attBundle = $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->get('bundle');
     $attEntityType = $this->fieldDefinition->get('entity_type');
     $fieldDefinitions = array_filter(
                           $this->entityFieldManager->getBaseFieldDefinitions($attEntityType),
