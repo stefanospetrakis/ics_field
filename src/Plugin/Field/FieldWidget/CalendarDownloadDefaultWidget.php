@@ -4,7 +4,7 @@ namespace Drupal\px_calendar_download\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityFieldManager;
-use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -14,6 +14,7 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Utility\Token;
 use Drupal\file\Entity\File;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\px_calendar_download\CalendarDownloadUtil;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -196,24 +197,21 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   public function massageFormValues(array $values,
                                     array $form,
                                     FormStateInterface $formState) {
-    $formObject = $formState->getFormObject();
-    if ($formObject instanceof EntityForm) {
-      $entity = $formObject->getEntity();
-      if ($entity->getEntityTypeId() === 'node') {
-        $fieldDefinitions = $this->getEntityFieldDefinitions();
-        foreach ($formState->getValues() as $key => $value) {
-          if (isset($fieldDefinitions[$key])) {
-            try {
-              //TODO - entity interface does not implement a set method
-              $entity->set($key, $value);
-            } catch (\InvalidArgumentException $e) {
-              $this->logger->error($e->getMessage());
-            }
+    $contentEntity = $this->getContentEntityFromForm($formState);
+    if ($contentEntity) {
+      $fieldDefinitions = $this->getEntityFieldDefinitions();
+      foreach ($formState->getValues() as $key => $value) {
+        if (isset($fieldDefinitions[$key])) {
+          try {
+            $contentEntity->set($key, $value);
+          }
+          catch (\InvalidArgumentException $e) {
+            $this->logger->error($e->getMessage());
           }
         }
-        foreach ($values as $key => &$value) {
-          $this->updateManagedCalFile($value, $entity);
-        }
+      }
+      foreach ($values as $key => &$value) {
+        $this->updateManagedCalFile($value, $contentEntity);
       }
     }
     return $values;
@@ -224,7 +222,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
-   * @param EntityInterface $entity
+   * @param ContentEntityBase $entity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @throws \UnexpectedValueException
@@ -254,7 +252,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
-   * @param EntityInterface $entity
+   * @param ContentEntityBase $entity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @return string[]
@@ -397,9 +395,28 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * @param string $uri
    */
   private function handleDirectoryError($uri) {
-    $msg = 'Could not create calendar directory: ' . $uri;
+    $msg = 'Could not access calendar directory: ' . $uri;
     drupal_set_message($msg, 'error');
     $this->logger->error($msg);
+  }
+
+  /**
+   * Extract and return a ContentEntity from a form.
+   *
+   * @param FormStateInterface $formState
+   *   Incoming FormStateInterface object.
+   *
+   * @return ContentEntityBase|NULL
+   */
+  private function getContentEntityFromForm(FormStateInterface $formState) {
+    $formObject = $formState->getFormObject();
+    if ($formObject instanceof ContentEntityForm) {
+      $contentEntity = $formObject->getEntity();
+      if ($contentEntity instanceof ContentEntityBase) {
+        return $contentEntity;
+      }
+    }
+    return NULL;
   }
 
 }
