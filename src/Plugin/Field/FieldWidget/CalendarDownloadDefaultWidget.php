@@ -222,21 +222,21 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
-   * @param ContentEntityBase $entity
+   * @param ContentEntityBase $contentEntity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @throws \UnexpectedValueException
    */
   private function updateManagedCalFile(array &$formValue,
-                                        EntityInterface $entity) {
+                                        ContentEntityBase $contentEntity) {
     $calendarProperties = $this->instantiateCalendarProperties($formValue,
-                                                               $entity);
+                                                               $contentEntity);
     if (!empty($calendarProperties['dates_list'])) {
       try {
         $calendarDownloadUtil = new CalendarDownloadUtil($calendarProperties,
                                                          $this->request);
         $icsFileStr = $calendarDownloadUtil->generate();
-        $formValue['fileref'] = $this->saveManagedCalendarFile($entity,
+        $formValue['fileref'] = $this->saveManagedCalendarFile($contentEntity,
                                                                $icsFileStr,
                                                                isset($formValue['fileref']) ?
                                                                  $formValue['fileref'] :
@@ -252,7 +252,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @param mixed[]         $formValue
    *   Incoming array with the form values of the widget.
-   * @param ContentEntityBase $entity
+   * @param ContentEntityBase $contentEntity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @return string[]
@@ -261,7 +261,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *   Returns an array of instantiated calendarProperties.
    */
   private function instantiateCalendarProperties(array $formValue,
-                                                 EntityInterface $entity) {
+                                                 ContentEntityBase $contentEntity) {
     $calendarProperties = [];
     // Set default timezone
     // Note: Use the following if we want to use the site's timezone.
@@ -271,19 +271,19 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     $calendarProperties['product_identifier'] = $this->request->getHost();
     // Uses token replacement to interpolate tokens in the field's fields that support them.
     $calendarProperties['summary'] = $this->tokenService->replace($formValue['summary'],
-                                                                  [$entity->getEntityTypeId() => $entity]);
+                                                                  [$contentEntity->getEntityTypeId() => $contentEntity]);
     $calendarProperties['url'] = $this->tokenService->replace($formValue['url'],
-                                                              [$entity->getEntityTypeId() => $entity]);
+                                                              [$contentEntity->getEntityTypeId() => $contentEntity]);
     $calendarProperties['description'] = $this->tokenService->replace($formValue['description'],
-                                                                      [$entity->getEntityTypeId() => $entity]);
-    $calendarProperties['uuid'] = $entity->uuid() .
+                                                                      [$contentEntity->getEntityTypeId() => $contentEntity]);
+    $calendarProperties['uuid'] = $contentEntity->uuid() .
                                   $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid();
 
     $calendarProperties['dates_list'] = [];
     $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
     if (!empty($dateFieldReference)) {
-      //TODO refactor this to not use $entity->$dateFieldReference form to get value
-      foreach ($entity->$dateFieldReference->getValue() as $dateVal) {
+      //TODO refactor this to not use $contentEntity->$dateFieldReference form to get value
+      foreach ($contentEntity->$dateFieldReference->getValue() as $dateVal) {
         if (!$dateVal['value'] instanceof DrupalDateTime) {
           continue;
         }
@@ -296,7 +296,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   /**
    * Create/Update managed ical file.
    *
-   * @param EntityInterface $entity
+   * @param ContentEntityBase $contentEntity
    *   Incoming content entity with the rest of the entity's submitted values.
    * @param string          $icsFileStr
    *   The ics file as a string.
@@ -306,7 +306,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * @return int
    *   Returns the file id of the created/updated file.
    */
-  private function saveManagedCalendarFile(EntityInterface $entity,
+  private function saveManagedCalendarFile(ContentEntityBase $contentEntity,
                                            string $icsFileStr,
                                            int $fileId = 0) {
     // Overwrite an existing managed file.
@@ -327,7 +327,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                      $fileDirectory);
       if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
-        $fileName = md5($entity->uuid() . $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid()) .
+        $fileName = md5($contentEntity->uuid() . $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid()) .
                     '_event.ics';
         $fileUri = $uploadLocation . '/' . $fileName;
         $file = file_save_data($icsFileStr,
