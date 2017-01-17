@@ -282,8 +282,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     $calendarProperties['dates_list'] = [];
     $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
     if (!empty($dateFieldReference)) {
-      //TODO refactor this to not use $contentEntity->$dateFieldReference form to get value
-      foreach ($contentEntity->$dateFieldReference->getValue() as $dateVal) {
+      foreach ($contentEntity->get($dateFieldReference)->getValue() as $dateVal) {
         if (!$dateVal['value'] instanceof DrupalDateTime) {
           continue;
         }
