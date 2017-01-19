@@ -157,7 +157,7 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
   }
 
   /**
-   *
+   * Get TimezoneProviderInterface mock
    */
   private function getTzpMock() {
     $tzp = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')

@@ -39,8 +39,8 @@ class ICalTimezoneGenerator {
    *   depending on the user's timezone.
    *
    * @return Timezone The modified timezone object.
-   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    *
+   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    * @throws \InvalidArgumentException
    */
   public function applyTimezoneTransitions(Timezone $iCalendarTimezone,
@@ -126,16 +126,17 @@ class ICalTimezoneGenerator {
   }
 
   /**
-   * @param $transition
-   * @param $dateTimeZone
-   * @param $daylightSavings
-   * @param $timezoneOffsetFrom
+   * @param array         $transition
+   * @param \DateTimeZone $dateTimeZone
+   * @param bool          $daylightSavings
+   * @param int           $timezoneOffsetFrom
    *
    * @return \Eluceo\iCal\Component\TimezoneRule
+   *
    * @throws \InvalidArgumentException
    */
-  protected function buildTimezoneRule($transition,
-                                       $dateTimeZone,
+  protected function buildTimezoneRule(array $transition,
+                                       \DateTimeZone $dateTimeZone,
                                        $daylightSavings,
                                        &$timezoneOffsetFrom) {
 
@@ -162,7 +163,7 @@ class ICalTimezoneGenerator {
   }
 
   /**
-   * @param $timezoneOffsetFrom
+   * @param int $timezoneOffsetFrom
    *
    * @return string
    */
@@ -177,7 +178,7 @@ class ICalTimezoneGenerator {
   }
 
   /**
-   * @param $offset
+   * @param int $offset
    *
    * @return string
    */

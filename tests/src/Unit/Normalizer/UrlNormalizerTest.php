@@ -175,7 +175,7 @@ class UrlNormalizerTest extends UnitTestCase {
   /**
    * A data provider.
    *
-   * @return []
+   * @return array
    *   The mock object for Symfony\Component\HttpFoundation\Request.
    */
   public function schemeHttpHostProvider() {

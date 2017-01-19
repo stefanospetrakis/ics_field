@@ -75,8 +75,8 @@ class ICalFactory {
    * Generates an .ics file as a string.
    *
    * @return string The generated ical file as a string.
-   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    *
+   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    * @throws \InvalidArgumentException
    * @throws \UnexpectedValueException
    */
@@ -91,8 +91,6 @@ class ICalFactory {
     $iCalendar = new Calendar($this->getCalendarProperty('product_identifier'));
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
 
-    /** @var Timezone $trs */
-//    $trs = $this->applyTimezoneTransitions($iCalendarTimezone);
     $tg = new ICalTimezoneGenerator();
 
     /** @var Timezone $trans */
@@ -101,9 +99,6 @@ class ICalFactory {
 
     $iCalendar->setTimezone($trans);
 
-//    if ($trs !== $trans) {
-//      $a = 0;
-//    }
     $iCalendar = $this->addEvents($this->getCalendarProperty('dates_list'),
                                   $iCalendar);
 
@@ -155,113 +150,5 @@ class ICalFactory {
     }
     return $iCalendar;
   }
-
-  /**
-   * Getting the daylight-saving and standard timezones.
-   *
-   * Shamelessly copied over from http://stackoverflow.com/a/25971680/5875098.
-   *
-   * @param Timezone $iCalendarTimezone
-   *   An incoming timezone that we may modify by adding component rules,
-   *   depending on the user's timezone.
-   *
-   * @return Timezone
-   * @throws \InvalidArgumentException
-   *   The modified timezone object.
-   */
-//  protected function applyTimezoneTransitions(Timezone $iCalendarTimezone) {
-//    // First: find the oldest and newest event dates.
-//    list($from, $to) = $this->getMinMaxTimestamps($this->getCalendarProperty('dates_list'));
-//
-//    // Get all transitions for one year back/ahead.
-//    $year = 360 * 86400;
-//    $now = time();
-//    $from = $from ?: $now;
-//    $to = $to ?: $now;
-//    $datetimezone = new \DateTimeZone($iCalendarTimezone->getZoneIdentifier());
-//    $transitions = $datetimezone->getTransitions($from - $year, $to + $year);
-//
-//    $standardComponent = NULL;
-//    $daylightComponent = NULL;
-//    $timezoneOffsetFrom = 0;
-//    foreach ($transitions as $transitionIdx => $transition) {
-//      $component = NULL;
-//
-//      // Skip the first entry ...
-//      if ($transitionIdx === 0) {
-//        // ... but remember the offset for the next TZOFFSETFROM value.
-//        $timezoneOffsetFrom = $transition['offset'] / 3600;
-//        continue;
-//      }
-//
-//      // Daylight saving time definition.
-//      if ($transition['isdst']) {
-//        $timezoneDaylightComponent = $transition['ts'];
-//        $component = $daylightComponent = new TimezoneRule(TimezoneRule::TYPE_DAYLIGHT);
-//      } // Standard time definition.
-//      else {
-//        $timezoneStandardComponent = $transition['ts'];
-//        $component = $standardComponent = new TimezoneRule(TimezoneRule::TYPE_STANDARD);
-//      }
-//
-//      if ($component) {
-//        $datetime = new \DateTime($transition['time'], $datetimezone);
-//        $offset = $transition['offset'] / 3600;
-//
-//        $component->setDtStart($datetime);
-//        $component->setTzOffsetFrom(sprintf('%s%02d%02d',
-//                                            $timezoneOffsetFrom >= 0 ? '+' : '',
-//                                            floor($timezoneOffsetFrom),
-//                                            ($timezoneOffsetFrom -
-//                                             floor($timezoneOffsetFrom)) * 60
-//                                    ));
-//        $component->setTzOffsetTo(sprintf('%s%02d%02d',
-//                                          $offset >= 0 ? '+' : '',
-//                                          floor($offset),
-//                                          ($offset - floor($offset)) * 60
-//                                  ));
-//        // Add abbreviated timezone name if available.
-//        if (!empty($transition['abbr'])) {
-//          $component->setTzName($transition['abbr']);
-//        }
-//
-//        $timezoneOffsetFrom = $offset;
-//        $iCalendarTimezone->addComponent($component);
-//      }
-//
-//      // We covered the entire date range.
-//      if ($standardComponent &&
-//          $daylightComponent &&
-//          min($timezoneStandardComponent, $timezoneDaylightComponent) < $from &&
-//          max($timezoneStandardComponent, $timezoneDaylightComponent) > $to
-//      ) {
-//        break;
-//      }
-//    }
-//    return $iCalendarTimezone;
-//  }
-
-  /**
-   * Sort and return the oldest and newest event dates as timestamps.
-   *
-   * @param string[] $datesList
-   *   An array of date strings, i.e. 1970-01-01 01:00:00 Europe/Zurich.
-   *
-   * @return integer[]
-   *   The found pair of min and max timestamps.
-   */
-//  protected function getMinMaxTimestamps(array $datesList) {
-//    $min = $max = strtotime(array_pop($datesList));
-//    foreach ($datesList as $date) {
-//      $timestamp = strtotime($date);
-//      if ($timestamp > $max) {
-//        $max = $timestamp;
-//      }
-//      if ($timestamp < $min) {
-//        $min = $timestamp;
-//      }
-//    }
-//    return [$min, $max];
-//  }
 
 }
