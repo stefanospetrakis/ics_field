@@ -2,7 +2,6 @@
 
 namespace Drupal\px_calendar_download;
 
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface;
 use Eluceo\iCal\Component\Calendar;
 use Eluceo\iCal\Component\Event;

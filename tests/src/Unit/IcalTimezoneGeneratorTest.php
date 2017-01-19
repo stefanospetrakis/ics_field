@@ -8,7 +8,6 @@
 
 namespace Drupal\Tests\px_calendar_download;
 
-use Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException;
 use Drupal\px_calendar_download\ICalTimezoneGenerator;
 
 /**

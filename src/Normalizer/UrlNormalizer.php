@@ -8,7 +8,6 @@
 
 namespace Drupal\px_calendar_download\Normalizer;
 
-
 class UrlNormalizer implements UrlNormalizerInterface {
 
   /**
@@ -28,7 +27,6 @@ class UrlNormalizer implements UrlNormalizerInterface {
    * @param string $schemaAndHttpHost
    *
    * @return null|string A normalized URL string or null otherwise.
-   * A normalized URL string or null otherwise.
    */
   public function normalize($url, $scheme, $schemaAndHttpHost) {
 

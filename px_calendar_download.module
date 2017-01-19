@@ -10,13 +10,16 @@ use Drupal\Core\Routing\RouteMatchInterface;
 /**
  * Implements hook_help().
  */
-function px_calendar_download_help($routeName, RouteMatchInterface $routeMatch) {
+function px_calendar_download_help($routeName,
+                                   RouteMatchInterface $routeMatch) {
   switch ($routeName) {
     // Main module help for the px_calendar_download module.
     case 'help.page.px_calendar_download':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('A module providing a calendar download as an .ics file') . '</p>';
+      $output .= '<p>' .
+                 t('A module providing a calendar download as an .ics file') .
+                 '</p>';
       return $output;
 
     default:

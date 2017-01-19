@@ -69,10 +69,10 @@ class CalendarPropertyProcessor {
   /**
    * CalendarPropertyProcessor constructor.
    *
-   * @param \Drupal\Core\Utility\Token                        $tokenService
-   * @param TimezoneProviderInterface                         $timezoneProvider
-   * @param string                                            $dateFieldReference
-   * @param string                                            $dateFieldUuid
+   * @param \Drupal\Core\Utility\Token $tokenService
+   * @param TimezoneProviderInterface  $timezoneProvider
+   * @param string                     $dateFieldReference
+   * @param string                     $dateFieldUuid
    */
   public function __construct(Token $tokenService,
                               TimezoneProviderInterface $timezoneProvider,

@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\px_calendar_download\Unit;
 
-use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\px_calendar_download\ICalFactory;
 use Drupal\px_calendar_download\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;

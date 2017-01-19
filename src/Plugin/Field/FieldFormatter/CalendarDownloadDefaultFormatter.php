@@ -2,12 +2,11 @@
 
 namespace Drupal\px_calendar_download\Plugin\Field\FieldFormatter;
 
-use Drupal\file\Entity\File;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FormatterBase;
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\file\Entity\File;
 
 /**
  * Plugin implementation of the 'calendar_download_default_formatter' formatter.
@@ -56,9 +55,9 @@ class CalendarDownloadDefaultFormatter extends FormatterBase {
     if ($file) {
       $fileUrlObj = Url::fromUri(file_create_url($file->getFileUri()));
       $build = [
-        '#type' => 'link',
+        '#type'  => 'link',
         '#title' => $this->t('iCal Download'),
-        '#url' => $fileUrlObj,
+        '#url'   => $fileUrlObj,
       ];
       return $build;
     }

@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\px_calendar_download\Functional;
 
-use Drupal\Tests\BrowserTestBase;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\BrowserTestBase;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -64,83 +64,93 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
 
     $nodeType = NodeType::create([
-      'type' => 'article',
-      'name' => 'Article',
-      'description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
-    ]);
+                                   'type'        => 'article',
+                                   'name'        => 'Article',
+                                   'description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
+                                 ]);
     $nodeType->save();
 
-    entity_create('field_storage_config', array(
-      'field_name' => 'field_dates',
-      'entity_type' => 'node',
-      'type' => 'datetime',
-      'datetime_type' => 'datetime',
-    ))->save();
-    entity_create('field_config', array(
-      'field_name' => 'field_dates',
-      'label' => 'Dates',
-      'entity_type' => 'node',
-      'bundle' => 'article',
-    ))->save();
+    entity_create('field_storage_config',
+                  [
+                    'field_name'    => 'field_dates',
+                    'entity_type'   => 'node',
+                    'type'          => 'datetime',
+                    'datetime_type' => 'datetime',
+                  ])->save();
+    entity_create('field_config',
+                  [
+                    'field_name'  => 'field_dates',
+                    'label'       => 'Dates',
+                    'entity_type' => 'node',
+                    'bundle'      => 'article',
+                  ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
-      ->setComponent('field_dates', [
-        'type' => 'datetime_default',
-      ])
+      ->setComponent('field_dates',
+                     [
+                       'type' => 'datetime_default',
+                     ])
       ->save();
 
-    $fieldIcsDownload = entity_create('field_storage_config', [
-      'field_name' => 'field_ics_download',
-      'entity_type' => 'node',
-      'type' => 'calendar_download_type',
-    ]);
+    $fieldIcsDownload = entity_create('field_storage_config',
+                                      [
+                                        'field_name'  => 'field_ics_download',
+                                        'entity_type' => 'node',
+                                        'type'        => 'calendar_download_type',
+                                      ]);
     $fieldIcsDownload->setSettings([
-      'date_field_reference' => 'field_dates',
-      'is_ascii' => FALSE,
-      'uri_scheme' => 'public',
-      'file_directory' => 'icsfiles',
-    ]);
+                                     'date_field_reference' => 'field_dates',
+                                     'is_ascii'             => FALSE,
+                                     'uri_scheme'           => 'public',
+                                     'file_directory'       => 'icsfiles',
+                                   ]);
     $fieldIcsDownload->save();
-    entity_create('field_config', array(
-      'field_name' => 'field_ics_download',
-      'label' => 'ICS Download',
-      'entity_type' => 'node',
-      'bundle' => 'article',
-    ))->save();
+    entity_create('field_config',
+                  [
+                    'field_name'  => 'field_ics_download',
+                    'label'       => 'ICS Download',
+                    'entity_type' => 'node',
+                    'bundle'      => 'article',
+                  ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
-      ->setComponent('field_ics_download', [
-        'type' => 'calendar_download_default_widget',
-      ])
+      ->setComponent('field_ics_download',
+                     [
+                       'type' => 'calendar_download_default_widget',
+                     ])
       ->save();
     entity_get_display('node', 'article', 'default')
-      ->setComponent('field_ics_download', array(
-        'type' => 'calendar_download_default_formatter',
-        'settings' => [],
-      ))
+      ->setComponent('field_ics_download',
+                     [
+                       'type'     => 'calendar_download_default_formatter',
+                       'settings' => [],
+                     ])
       ->save();
 
-    entity_create('field_storage_config', array(
-      'field_name' => 'field_body',
-      'entity_type' => 'node',
-      'type' => 'text_with_summary',
-    ))->save();
-    entity_create('field_config', array(
-      'field_name' => 'field_body',
-      'label' => 'Body',
-      'entity_type' => 'node',
-      'bundle' => 'article',
-    ))->save();
+    entity_create('field_storage_config',
+                  [
+                    'field_name'  => 'field_body',
+                    'entity_type' => 'node',
+                    'type'        => 'text_with_summary',
+                  ])->save();
+    entity_create('field_config',
+                  [
+                    'field_name'  => 'field_body',
+                    'label'       => 'Body',
+                    'entity_type' => 'node',
+                    'bundle'      => 'article',
+                  ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
     entity_get_form_display('node', 'article', 'default')
-      ->setComponent('field_body', [
-        'type' => 'text_textarea_with_summary',
-        'settings' => [
-          'rows' => '9',
-          'summary_rows' => '3',
-        ],
-        'weight' => 5,
-      ])
+      ->setComponent('field_body',
+                     [
+                       'type'     => 'text_textarea_with_summary',
+                       'settings' => [
+                         'rows'         => '9',
+                         'summary_rows' => '3',
+                       ],
+                       'weight'   => 5,
+                     ])
       ->save();
   }
 
@@ -159,11 +169,11 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     $dateValue0Time = gmdate('H:i:s', $timestamp);
 
     $add = [
-      'title[0][value]' => 'A calendar event',
-      'field_dates[0][value][date]' => $dateValue0Date,
-      'field_dates[0][value][time]' => $dateValue0Time,
-      'field_body[0][value]' => "Lorem ipsum.",
-      'field_ics_download[0][summary]' => '[node:title]',
+      'title[0][value]'                    => 'A calendar event',
+      'field_dates[0][value][date]'        => $dateValue0Date,
+      'field_dates[0][value][time]'        => $dateValue0Time,
+      'field_body[0][value]'               => "Lorem ipsum.",
+      'field_ics_download[0][summary]'     => '[node:title]',
       'field_ics_download[0][description]' => '[node:field_body]',
     ];
     $this->drupalPostForm('node/add/article', $add, t('Save and publish'));
@@ -176,7 +186,8 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     $this->drupalGet('node/' . $node->id());
 
     // Check if there is a link for downloading the ics file.
-    $elements = $this->xpath('//a[@href and string-length(@href)!=0 and text() = :label]', [':label' => t('iCal Download')->render()]);
+    $elements = $this->xpath('//a[@href and string-length(@href)!=0 and text() = :label]',
+                             [':label' => t('iCal Download')->render()]);
     $el = reset($elements);
     $downloadUrl = $el->getAttribute('href');
     $icsString = file_get_contents($downloadUrl);
@@ -187,14 +198,13 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
       // Send a post to the ical_validation_url,
       // at http://severinghaus.org/projects/icv/
       $httpClient = \Drupal::httpClient();
-      $postArray = array(
+      $postArray = [
         'form_params' => ['snip' => $icsString],
-      );
+      ];
       $response = $httpClient->post($icalValidationUrl, $postArray);
       $crawler = new Crawler($response->getBody()->getContents());
       $this->assertEquals(1, $crawler->filter('div.message.success')->count());
-    }
-    else {
+    } else {
       // TODO Implement some local validation.
       // This would imply a need some local code iCal parsing library to
       // validate the generated string.

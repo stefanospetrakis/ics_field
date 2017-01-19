@@ -16,31 +16,48 @@ use Drupal\Tests\UnitTestCase;
  */
 class CalendarPropertyProcessorFactoryTest extends UnitTestCase {
 
+  public function testInstantiation() {
 
-  public function testInstantiation(){
+    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')
+                ->getMock();
+    $t = $this->getMockBuilder('Drupal\Core\Utility\Token')
+              ->disableOriginalConstructor()
+              ->getMock();
+    $f = new CalendarPropertyProcessorFactory($tpi, $t);
 
-    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')->getMock();
-    $t = $this->getMockBuilder('Drupal\Core\Utility\Token')->disableOriginalConstructor()->getMock();
-    $f = new CalendarPropertyProcessorFactory($tpi,$t);
-
-    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessorFactory', $f);
+    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessorFactory',
+                            $f);
 
   }
 
-  public function testGeneration(){
-    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')->getMock();
-    $t = $this->getMockBuilder('Drupal\Core\Utility\Token')->disableOriginalConstructor()->getMock();
-    $f = new CalendarPropertyProcessorFactory($tpi,$t);
+  public function testGeneration() {
+    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')
+                ->getMock();
+    $t = $this->getMockBuilder('Drupal\Core\Utility\Token')
+              ->disableOriginalConstructor()
+              ->getMock();
+    $f = new CalendarPropertyProcessorFactory($tpi, $t);
 
-    $fdi = $this->getMockBuilder('Drupal\Core\Field\FieldDefinitionInterface')->disableOriginalConstructor()->getMock();
-    $fdi->expects($this->once())->method('getSetting')->will($this->returnValue('I am the reference'));
+    $fdi = $this->getMockBuilder('Drupal\Core\Field\FieldDefinitionInterface')
+                ->disableOriginalConstructor()
+                ->getMock();
+    $fdi->expects($this->once())
+        ->method('getSetting')
+        ->will($this->returnValue('I am the reference'));
 
-    $fci = $this->getMockBuilder('Drupal\Core\Field\FieldConfigInterface')->disableOriginalConstructor()->getMock();
-    $fci->expects($this->once())->method('uuid')->will($this->returnValue('i am the uuid'));
+    $fci = $this->getMockBuilder('Drupal\Core\Field\FieldConfigInterface')
+                ->disableOriginalConstructor()
+                ->getMock();
+    $fci->expects($this->once())
+        ->method('uuid')
+        ->will($this->returnValue('i am the uuid'));
 
-    $fdi->expects($this->once())->method('getConfig')->will($this->returnValue($fci));
+    $fdi->expects($this->once())
+        ->method('getConfig')
+        ->will($this->returnValue($fci));
 
-    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor',$f->create($fdi));
+    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor',
+                            $f->create($fdi));
   }
 
 }
