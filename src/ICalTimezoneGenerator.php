@@ -17,7 +17,7 @@ use Eluceo\iCal\Component\TimezoneRule;
  *
  * @package Drupal\px_calendar_download
  */
-class IcalTimezoneGenerator {
+class ICalTimezoneGenerator {
 
   /**
    * @var string
@@ -47,7 +47,7 @@ class IcalTimezoneGenerator {
                                            $dateList) {
 
     list($from, $to) = $this->getMinMaxTimestamps($dateList);
-    list($from, $to) = $this->adjustTimestampsByAYear($from,$to);
+    list($from, $to) = $this->adjustTimestampsByAYear($from, $to);
 
     // Get all transitions for one year back/ahead.
     $dateTimeZone = new \DateTimeZone($iCalendarTimezone->getZoneIdentifier());
@@ -110,8 +110,19 @@ class IcalTimezoneGenerator {
     return [$min, $max];
   }
 
-  private function adjustTimestampsByAYear(\DateTime $from, \DateTime $to){
-    return [$from->sub(new \DateInterval('P1Y')),$to->add(new \DateInterval('P1Y'))];
+  /**
+   * Add and subtract a year from min/max timestamps
+   *
+   * @param \DateTime $from
+   * @param \DateTime $to
+   *
+   * @return array
+   */
+  private function adjustTimestampsByAYear(\DateTime $from, \DateTime $to) {
+    return [
+      $from->sub(new \DateInterval('P1Y')),
+      $to->add(new \DateInterval('P1Y')),
+    ];
   }
 
   /**

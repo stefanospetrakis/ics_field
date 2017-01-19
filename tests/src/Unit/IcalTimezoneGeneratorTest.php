@@ -9,7 +9,7 @@
 namespace Drupal\Tests\px_calendar_download;
 
 use Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException;
-use Drupal\px_calendar_download\IcalTimezoneGenerator;
+use Drupal\px_calendar_download\ICalTimezoneGenerator;
 
 /**
  * @group px_calendar_download
@@ -23,7 +23,7 @@ class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
   public function testInvalidTimestapFormat() {
     date_default_timezone_set('UTC');
 
-    $ic = new IcalTimezoneGenerator();
+    $ic = new ICalTimezoneGenerator();
     $this->assertEquals([0, 1],
                         $ic->getMinMaxTimestamps([
                                                    '1970-01-01 00:00:00',
@@ -35,7 +35,7 @@ class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
    * Test that the initial return value of the timezone is the default value
    */
   public function testGetDefaultTimezone() {
-    $ic = new IcalTimezoneGenerator();
+    $ic = new ICalTimezoneGenerator();
     $this->assertAttributeEquals($ic->getTimestampFormat(),
                                  'timestampFormat',
                                  $ic);
@@ -45,7 +45,7 @@ class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
    * Test that setting the timezone works
    */
   public function testGetSetTimezone() {
-    $ic = new IcalTimezoneGenerator();
+    $ic = new ICalTimezoneGenerator();
     $timestamp = 'Y-m-D H:i:s';
     $ic->setTimestampFormat($timestamp);
     $this->assertEquals($timestamp, $ic->getTimestampFormat());
@@ -58,7 +58,7 @@ class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
 
     date_default_timezone_set('UTC');
 
-    $ic = new IcalTimezoneGenerator();
+    $ic = new ICalTimezoneGenerator();
     $this->assertEquals([
                           \DateTime::createFromFormat($ic->getTimestampFormat(),
                                                       '1970-01-01 00:00:00 Europe/Zurich'),
@@ -101,7 +101,7 @@ class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
 
     date_default_timezone_set('UTC');
 
-    $ic = new IcalTimezoneGenerator();
+    $ic = new ICalTimezoneGenerator();
     $ic->setTimestampFormat('Y-m-d H:i:s');
     $this->assertEquals([
                           \DateTime::createFromFormat($ic->getTimestampFormat(),

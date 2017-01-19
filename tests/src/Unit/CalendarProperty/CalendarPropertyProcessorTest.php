@@ -6,10 +6,10 @@
  * Time: 21:48
  */
 
-namespace Drupal\Tests\px_calendar_download;
+namespace Drupal\Tests\px_calendar_download\CalendarProperty;
 
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\px_calendar_download\CalendarPropertyProcessor;
+use Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -38,8 +38,8 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
     $this->cpp = new CalendarPropertyProcessor($this->getTokenMock(),
                                                $this->getTzpMock(),
                                                'date_field_reference',
-                                               'date_field_uuid',
-                                               $this->getTranslationManagerMock());
+                                               'date_field_uuid'
+    );
 
     parent::setUp();
 
@@ -53,7 +53,7 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
    * Because we mock the service we just return the unprocessed input
    *
    * @expectedException \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
-   * @expectedExceptionMessageRegExp 'Missing needed property @propertyName.'
+   * @expectedExceptionMessageRegExp /Missing needed property \w+/
    *
    * @dataProvider                   propertyProvider
    */
@@ -69,7 +69,7 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
    * Test failing validation with a missing date list
    *
    * @expectedException \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
-   * @expectedExceptionMessageRegExp 'Missing needed property @propertyName.'
+   * @expectedExceptionMessageRegExp /Missing needed property \w+/
    */
   public function testWithEmptyDateList() {
 
@@ -89,11 +89,11 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
                            $this->cpp->getEssentialProperties());
 
     $expected = [
-      'timezone' => 'timezone',
+      'timezone'           => 'timezone',
       'product_identifier' => 'product_identifier',
-      'uuid' => 'uuid',
-      'summary' => 'summary',
-      'dates_list' =>
+      'uuid'               => 'uuid',
+      'summary'            => 'summary',
+      'dates_list'         =>
         [
           0 => 'I am rendered',
         ],

@@ -7,16 +7,13 @@ use Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface;
 use Eluceo\iCal\Component\Calendar;
 use Eluceo\iCal\Component\Event;
 use Eluceo\iCal\Component\Timezone;
-use Eluceo\iCal\Component\TimezoneRule;
 use Html2Text\Html2Text;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Utility class for generating calendars.
  */
-class CalendarDownloadUtil {
-
-  use StringTranslationTrait;
+class ICalFactory {
 
   /**
    * The calendar array of properties.
@@ -47,21 +44,17 @@ class CalendarDownloadUtil {
   /**
    * Constructs a new CalendarDownloadUtil.
    *
-   * @param string[]                                                       $calendarProperties
-   *   An array of calendar properties.
-   * @param \Symfony\Component\HttpFoundation\Request                      $request
-   *   The request stack used to retrieve the current request.
-   *
    * @param \Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface $normalizer
    *
+   * @internal param \string[] $calendarProperties An array of calendar
+   *           properties.*   An array of calendar properties.
+   * @internal param \Symfony\Component\HttpFoundation\Request $request The
+   *           request stack used to retrieve the current request.*   The
+   *           request stack used to retrieve the current request.
    * @codeCoverageIgnore
    */
-  public function __construct(array $calendarProperties,
-                              Request $request,
-                              UrlNormalizerInterface $normalizer) {
-    $this->calendarProperties = $calendarProperties;
-    $this->request = $request;
-    $this->userDatetimezone = new \DateTimeZone($this->getCalendarProperty('timezone'));
+  public function __construct(UrlNormalizerInterface $normalizer) {
+
     $this->urlNormalizer = $normalizer;
   }
 
@@ -83,20 +76,25 @@ class CalendarDownloadUtil {
    * Generates an .ics file as a string.
    *
    * @return string The generated ical file as a string.
+   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
    *
    * @throws \InvalidArgumentException
-   *
    * @throws \UnexpectedValueException
    */
-  public function generate() {
+  public function generate(array $calendarProperties,
+                           Request $request) {
+
+    $this->calendarProperties = $calendarProperties;
+    $this->request = $request;
+    $this->userDatetimezone = new \DateTimeZone($this->getCalendarProperty('timezone'));
+
     // The provided 'product_identifier' will be used for iCal's PRODID.
     $iCalendar = new Calendar($this->getCalendarProperty('product_identifier'));
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
 
     /** @var Timezone $trs */
 //    $trs = $this->applyTimezoneTransitions($iCalendarTimezone);
-//
-    $tg = new IcalTimezoneGenerator();
+    $tg = new ICalTimezoneGenerator();
 
     /** @var Timezone $trans */
     $trans = $tg->applyTimezoneTransitions($iCalendarTimezone,
@@ -107,7 +105,6 @@ class CalendarDownloadUtil {
 //    if ($trs !== $trans) {
 //      $a = 0;
 //    }
-
     $iCalendar = $this->addEvents($this->getCalendarProperty('dates_list'),
                                   $iCalendar);
 

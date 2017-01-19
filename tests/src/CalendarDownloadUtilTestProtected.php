@@ -2,14 +2,14 @@
 
 namespace Drupal\Tests\px_calendar_download;
 
-use Drupal\px_calendar_download\CalendarDownloadUtil;
+use Drupal\px_calendar_download\ICalFactory;
 
 /**
  * Unit tests for px_calendar_download functions.
  *
  * @group px_calendar_download
  */
-class CalendarDownloadUtilTestProtected extends CalendarDownloadUtil {
+class ICalFactoryTestProtected extends ICalFactory {
 
   /**
    * Exposes private function for testing.

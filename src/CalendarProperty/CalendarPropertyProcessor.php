@@ -6,12 +6,10 @@
  * Time: 23:34
  */
 
-namespace Drupal\px_calendar_download;
+namespace Drupal\px_calendar_download\CalendarProperty;
 
-//use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\Core\Utility\Token;
 use Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException;
 use Drupal\px_calendar_download\Timezone\TimezoneProviderInterface;
@@ -55,11 +53,6 @@ class CalendarPropertyProcessor {
   ];
 
   /**
-   * @var TranslationManager
-   */
-  protected $stringTranslation;
-
-  /**
    * @return array
    */
   public function getEssentialProperties() {
@@ -80,27 +73,23 @@ class CalendarPropertyProcessor {
    * @param TimezoneProviderInterface                         $timezoneProvider
    * @param string                                            $dateFieldReference
    * @param string                                            $dateFieldUuid
-   * @param \Drupal\Core\StringTranslation\TranslationManager $stringTranslation
    */
   public function __construct(Token $tokenService,
                               TimezoneProviderInterface $timezoneProvider,
                               $dateFieldReference,
-                              $dateFieldUuid,
-                              TranslationManager $stringTranslation) {
+                              $dateFieldUuid) {
     $this->tokenService = $tokenService;
     $this->timezoneProvider = $timezoneProvider;
     $this->dateFieldReference = $dateFieldReference;
     $this->dateFieldUuid = $dateFieldUuid;
-    $this->stringTranslation = $stringTranslation;
   }
 
   /**
-   * @param array  $tokens
-   * @param string $host
+   * @param array                                      $tokens
+   * @param \Drupal\Core\Entity\ContentEntityInterface $contentEntity
+   * @param string                                     $host
    *
    * @return array
-   * @throws \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
-   * @throws \InvalidArgumentException
    */
   public function getCalendarProperties(array $tokens,
                                         ContentEntityInterface $contentEntity,
@@ -118,7 +107,8 @@ class CalendarPropertyProcessor {
     // Uses token replacement to interpolate tokens in the field's fields that support them.
     $data = [$contentEntity->getEntityTypeId() => $contentEntity];
     $calendarProperties = array_merge($calendarProperties,
-                                      $this->tokenService->replace($tokens,$data));
+                                      $this->tokenService->replace($tokens,
+                                                                   $data));
 
     $calendarProperties['dates_list'] = $this->processDateList($contentEntity);
 
@@ -167,9 +157,10 @@ class CalendarPropertyProcessor {
       if (!array_key_exists($essentialProperty, $calendarProperties) ||
           empty($calendarProperties[$essentialProperty])
       ) {
-
-        throw new CalendarDownloadInvalidPropertiesException($this->stringTranslation->translate('Missing needed property @propertyName.',
-                                                                                                 ['@propertyName' => $essentialProperty]));
+        //We do not string translate exceptions, as its possible in an exception that the translation service will also throw
+        throw new CalendarDownloadInvalidPropertiesException('Missing needed property ' .
+                                                             $essentialProperty
+        );
       }
     }
     return TRUE;

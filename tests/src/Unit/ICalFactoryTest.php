@@ -3,14 +3,14 @@
 namespace Drupal\Tests\px_calendar_download\Unit;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\px_calendar_download\CalendarDownloadUtil;
+use Drupal\px_calendar_download\ICalFactory;
 use Drupal\px_calendar_download\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;
 
 /**
  * @group px_calendar_download
  */
-class CalendarDownloadUtilTest extends UnitTestCase {
+class ICalFactoryTest extends UnitTestCase {
 
   /**
    * A valid calendar array of properties.
@@ -35,30 +35,8 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    * @dataProvider schemeHttpHostProvider
    */
   public function testCheckPropertiesHavingAll($request) {
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties,
-                                             $request,
-                                             new UrlNormalizer());
+    $calendarUtil = new ICalFactory(new UrlNormalizer());
     $this->assertNotNull($calendarUtil);
-  }
-
-  /**
-   * Tests calendar property getter function.
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testCheckGettingProperty($request) {
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties,
-                                             $request,
-                                             new UrlNormalizer());
-    $getCalendarPropertyReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil',
-                                                                                   'getCalendarProperty');
-
-    $this->assertNotNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil,
-                                                                     'timezone'),
-                         "Getting the value of an existing/set calendar property.");
-    $this->assertNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil,
-                                                                  'PROPERTY_WHICH_DOES_NOT_EXIST'),
-                      "Getting the value of an existing/set calendar property.");
   }
 
   /**
@@ -79,13 +57,12 @@ class CalendarDownloadUtilTest extends UnitTestCase {
       'uuid'               => '123456789',
     ];
     $expectedStrMd5 = '33d28e98e1cc215716067e69ec9bf058';
-    $calendarUtil = new CalendarDownloadUtil($calProperties,
-                                             $request,
-                                             new UrlNormalizer());
+    $calendarUtil = new ICalFactory(new UrlNormalizer());
     // Ignore the DTSTAMP lines,they change constantly.
     $generatedStrMd5 = md5(preg_replace('#^DTSTAMP.*\n#m',
                                         '',
-                                        $calendarUtil->generate()));
+                                        $calendarUtil->generate($calProperties,
+                                                                $request)));
     $this->assertEquals($expectedStrMd5, $generatedStrMd5);
 
     // Expected vcalendar string.
@@ -123,34 +100,6 @@ class CalendarDownloadUtilTest extends UnitTestCase {
     END:VEVENT
     END:VCALENDAR
      */
-  }
-
-  /**
-   * Mocking the string_translation service.
-   */
-  private function mockStringTranslationService() {
-    $stringTranslation = $this->getStringTranslationStub();
-    $container = new ContainerBuilder();
-    $container->set('string_translation', $stringTranslation);
-    \Drupal::setContainer($container);
-  }
-
-  /**
-   * Allowing access to protected methods via reflection.
-   *
-   * @param string $className
-   *   The name of the reflected class.
-   * @param string $methodName
-   *   The name of the protected method.
-   *
-   * @return \ReflectionMethod
-   *   The protected method which is now accessible.
-   */
-  private function getProtectedPropertyViaReflection(string $className,
-                                                     string $methodName) {
-    $method = new \ReflectionMethod($className, $methodName);
-    $method->setAccessible(TRUE);
-    return $method;
   }
 
   /**
