@@ -6,32 +6,32 @@
  * Time: 12:38
  */
 
-namespace Drupal\Tests\px_calendar_download\CalendarProperty;
+namespace Drupal\Tests\ics_field\CalendarProperty;
 
-use Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessorFactory;
+use Drupal\ics_field\CalendarProperty\CalendarPropertyProcessorFactory;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @group px_calendar_download
+ * @group ics_field
  */
 class CalendarPropertyProcessorFactoryTest extends UnitTestCase {
 
   public function testInstantiation() {
 
-    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')
+    $tpi = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')
                 ->getMock();
     $t = $this->getMockBuilder('Drupal\Core\Utility\Token')
               ->disableOriginalConstructor()
               ->getMock();
     $f = new CalendarPropertyProcessorFactory($tpi, $t);
 
-    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessorFactory',
+    $this->assertInstanceOf('Drupal\ics_field\CalendarProperty\CalendarPropertyProcessorFactory',
                             $f);
 
   }
 
   public function testGeneration() {
-    $tpi = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')
+    $tpi = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')
                 ->getMock();
     $t = $this->getMockBuilder('Drupal\Core\Utility\Token')
               ->disableOriginalConstructor()
@@ -56,7 +56,7 @@ class CalendarPropertyProcessorFactoryTest extends UnitTestCase {
         ->method('getConfig')
         ->will($this->returnValue($fci));
 
-    $this->assertInstanceOf('Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor',
+    $this->assertInstanceOf('Drupal\ics_field\CalendarProperty\CalendarPropertyProcessor',
                             $f->create($fdi));
   }
 

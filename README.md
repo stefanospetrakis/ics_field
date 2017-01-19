@@ -12,7 +12,7 @@ CONTENTS OF THIS FILE
 INTRODUCTION
 ------------
 
-The Calendar Download module provides a field type, alonng with a widget and a
+The ICS Field module provides a field type, along with a widget and a
 formatter that, when added to a node and combined with a Datetime field can be
 used for providing *.ics (iCalendar) files that can be used with an
 email/calendar client program.
@@ -75,3 +75,17 @@ The following links provide more information about the iCal format:
 
 * https://en.wikipedia.org/wiki/ICalendar
 * http://www.ietf.org/rfc/rfc5545.txt
+
+
+CONTRIBUTING
+------------
+
+We use a Github pull request workflow. Each pull request should have a related and cross-linked drupal.org issue.
+
+[github](https://github.com/ibrows/drupal_ics_field)
+
+We welcome contributions in the following areas
+
+* Additional migrate commands - if you have a good drupal console migrate command we want to include it
+* Unit tests - as this is a port it currently has no testing, we would like to change this
+* Refactoring - only minimal refactoring has been done so far. Further refactoring would be happily accepted

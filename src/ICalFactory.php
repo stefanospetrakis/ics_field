@@ -1,8 +1,8 @@
 <?php
 
-namespace Drupal\px_calendar_download;
+namespace Drupal\ics_field;
 
-use Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface;
+use Drupal\ics_field\Normalizer\UrlNormalizerInterface;
 use Eluceo\iCal\Component\Calendar;
 use Eluceo\iCal\Component\Event;
 use Eluceo\iCal\Component\Timezone;
@@ -36,14 +36,14 @@ class ICalFactory {
   protected $userDatetimezone;
 
   /**
-   * @var \Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface
+   * @var \Drupal\ics_field\Normalizer\UrlNormalizerInterface
    */
   protected $urlNormalizer;
 
   /**
    * Constructs a new CalendarDownloadUtil.
    *
-   * @param \Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface $normalizer
+   * @param \Drupal\ics_field\Normalizer\UrlNormalizerInterface $normalizer
    *
    * @internal param \string[] $calendarProperties An array of calendar
    *           properties.*   An array of calendar properties.
@@ -75,7 +75,7 @@ class ICalFactory {
    * Generates an .ics file as a string.
    *
    * @return string The generated ical file as a string.
-   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
+   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    *
    * @throws \InvalidArgumentException
    * @throws \UnexpectedValueException

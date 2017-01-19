@@ -1,13 +1,13 @@
 <?php
 
-namespace Drupal\Tests\px_calendar_download;
+namespace Drupal\Tests\ics_field;
 
-use Drupal\px_calendar_download\ICalFactory;
-use Drupal\px_calendar_download\Normalizer\UrlNormalizer;
+use Drupal\ics_field\ICalFactory;
+use Drupal\ics_field\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @group px_calendar_download
+ * @group ics_field
  */
 class ICalFactoryTest extends UnitTestCase {
 

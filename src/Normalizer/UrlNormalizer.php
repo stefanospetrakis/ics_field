@@ -6,7 +6,7 @@
  * Time: 01:14
  */
 
-namespace Drupal\px_calendar_download\Normalizer;
+namespace Drupal\ics_field\Normalizer;
 
 class UrlNormalizer implements UrlNormalizerInterface {
 

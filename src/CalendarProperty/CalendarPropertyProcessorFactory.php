@@ -6,16 +6,16 @@
  * Time: 12:00
  */
 
-namespace Drupal\px_calendar_download\CalendarProperty;
+namespace Drupal\ics_field\CalendarProperty;
 
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Utility\Token;
-use Drupal\px_calendar_download\Timezone\TimezoneProviderInterface;
+use Drupal\ics_field\Timezone\TimezoneProviderInterface;
 
 /**
  * Class CalendarPropertyProcessorFactory
  *
- * @package Drupal\px_calendar_download\CalendarProperty
+ * @package Drupal\ics_field\CalendarProperty
  */
 class CalendarPropertyProcessorFactory {
 
@@ -32,7 +32,7 @@ class CalendarPropertyProcessorFactory {
   /**
    * CalendarPropertyProcessorFactory constructor.
    *
-   * @param \Drupal\px_calendar_download\Timezone\TimezoneProviderInterface $timezoneProvider
+   * @param \Drupal\ics_field\Timezone\TimezoneProviderInterface $timezoneProvider
    * @param \Drupal\Core\Utility\Token                                      $token
    */
   public function __construct(TimezoneProviderInterface $timezoneProvider,
@@ -44,7 +44,7 @@ class CalendarPropertyProcessorFactory {
   /**
    * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldDefinition
    *
-   * @return \Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor
+   * @return \Drupal\ics_field\CalendarProperty\CalendarPropertyProcessor
    */
   public function create(FieldDefinitionInterface $fieldDefinition) {
 

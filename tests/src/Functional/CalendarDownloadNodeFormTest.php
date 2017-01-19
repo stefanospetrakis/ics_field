@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\px_calendar_download\Functional;
+namespace Drupal\Tests\ics_field\Functional;
 
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\BrowserTestBase;
@@ -9,7 +9,7 @@ use Symfony\Component\DomCrawler\Crawler;
 /**
  * Tests that the add/edit Node Forms behaves properly.
  *
- * @group px_calendar_download
+ * @group ics_field
  */
 class CalendarDownloadNodeFormTest extends BrowserTestBase {
 
@@ -45,7 +45,7 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     'field_ui',
     'node',
     'datetime',
-    'px_calendar_download',
+    'ics_field',
     'file',
   ];
 

@@ -6,15 +6,15 @@
  * Time: 01:24
  */
 
-namespace Drupal\Tests\px_calendar_download;
+namespace Drupal\Tests\ics_field;
 
-use Drupal\px_calendar_download\Normalizer\UrlNormalizer;
+use Drupal\ics_field\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;
 
 /**
  * Class UrlNormalizerTest
  *
- * @group px_calendar_download
+ * @group ics_field
  */
 class UrlNormalizerTest extends UnitTestCase {
 

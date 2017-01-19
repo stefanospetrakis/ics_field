@@ -6,14 +6,14 @@
  * Time: 21:48
  */
 
-namespace Drupal\Tests\px_calendar_download\CalendarProperty;
+namespace Drupal\Tests\ics_field\CalendarProperty;
 
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor;
+use Drupal\ics_field\CalendarProperty\CalendarPropertyProcessor;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @group px_calendar_download
+ * @group ics_field
  */
 class CalendarPropertyProcessorTest extends UnitTestCase {
 
@@ -52,7 +52,7 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
    * and not that the drupal translation string service does its job properly
    * Because we mock the service we just return the unprocessed input
    *
-   * @expectedException \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
+   * @expectedException \Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException
    * @expectedExceptionMessageRegExp /Missing needed property \w+/
    *
    * @dataProvider                   propertyProvider
@@ -160,7 +160,7 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
    *
    */
   private function getTzpMock() {
-    $tzp = $this->getMockBuilder('Drupal\px_calendar_download\Timezone\TimezoneProviderInterface')
+    $tzp = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')
                 ->getMock();
     $tzp->expects($this->any())
         ->method('getTimezoneString')

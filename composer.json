@@ -1,5 +1,5 @@
 {
-  "name": "drupal/px_calendar_download",
+  "name": "drupal/ics_field",
   "type": "drupal-module",
   "description": "A module providing a calendar download as an .ics file",
   "keywords": [

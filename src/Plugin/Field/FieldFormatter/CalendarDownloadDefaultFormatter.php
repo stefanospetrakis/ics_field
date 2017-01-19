@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\px_calendar_download\Plugin\Field\FieldFormatter;
+namespace Drupal\ics_field\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;

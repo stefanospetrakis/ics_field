@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\px_calendar_download\Plugin\Field\FieldType;
+namespace Drupal\ics_field\Plugin\Field\FieldType;
 
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldItemBase;

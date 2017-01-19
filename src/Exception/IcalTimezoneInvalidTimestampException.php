@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\px_calendar_download\Exception;
+namespace Drupal\ics_field\Exception;
 
 /**
  * Exception class for invalid  calendar parameters.

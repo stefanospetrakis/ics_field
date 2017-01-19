@@ -6,17 +6,17 @@
  * Time: 00:05
  */
 
-namespace Drupal\Tests\px_calendar_download;
+namespace Drupal\Tests\ics_field;
 
-use Drupal\px_calendar_download\ICalTimezoneGenerator;
+use Drupal\ics_field\ICalTimezoneGenerator;
 
 /**
- * @group px_calendar_download
+ * @group ics_field
  */
 class IcalTimezoneGeneratorTest extends \PHPUnit_Framework_TestCase {
 
   /**
-   * @expectedException \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
+   * @expectedException \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    * @expectedExceptionMessage timestap format does not match Y-m-d H:i:s T
    */
   public function testInvalidTimestapFormat() {

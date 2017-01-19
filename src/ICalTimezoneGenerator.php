@@ -6,16 +6,16 @@
  * Time: 00:35
  */
 
-namespace Drupal\px_calendar_download;
+namespace Drupal\ics_field;
 
-use Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException;
+use Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException;
 use Eluceo\iCal\Component\Timezone;
 use Eluceo\iCal\Component\TimezoneRule;
 
 /**
  * Class IcalTimezoneGenerator
  *
- * @package Drupal\px_calendar_download
+ * @package Drupal\ics_field
  */
 class ICalTimezoneGenerator {
 
@@ -39,7 +39,7 @@ class ICalTimezoneGenerator {
    *   depending on the user's timezone.
    *
    * @return Timezone The modified timezone object.
-   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
+   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    *
    * @throws \InvalidArgumentException
    */
@@ -86,7 +86,7 @@ class ICalTimezoneGenerator {
    * @param array $datesList
    *
    * @return \DateTime[]
-   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
+   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
    */
   public function getMinMaxTimestamps(array $datesList) {
 

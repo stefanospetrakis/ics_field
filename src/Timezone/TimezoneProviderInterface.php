@@ -6,7 +6,7 @@
  * Time: 22:10
  */
 
-namespace Drupal\px_calendar_download\Timezone;
+namespace Drupal\ics_field\Timezone;
 
 interface TimezoneProviderInterface {
 

@@ -6,12 +6,12 @@
  * Time: 01:15
  */
 
-namespace Drupal\px_calendar_download\Normalizer;
+namespace Drupal\ics_field\Normalizer;
 
 /**
  * Interface UrlNormalizerInterface
  *
- * @package Drupal\px_calendar_download\Normalizer
+ * @package Drupal\ics_field\Normalizer
  */
 interface UrlNormalizerInterface {
 

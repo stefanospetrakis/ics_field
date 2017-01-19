@@ -6,18 +6,18 @@
  * Time: 23:34
  */
 
-namespace Drupal\px_calendar_download\CalendarProperty;
+namespace Drupal\ics_field\CalendarProperty;
 
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Utility\Token;
-use Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException;
-use Drupal\px_calendar_download\Timezone\TimezoneProviderInterface;
+use Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException;
+use Drupal\ics_field\Timezone\TimezoneProviderInterface;
 
 /**
  * Class CalendarPropertyProcessor
  *
- * @package Drupal\px_calendar_download
+ * @package Drupal\ics_field
  */
 class CalendarPropertyProcessor {
 
@@ -37,7 +37,7 @@ class CalendarPropertyProcessor {
   protected $dateFieldUuid;
 
   /**
-   * @var \Drupal\px_calendar_download\Timezone\TimezoneProviderInterface
+   * @var \Drupal\ics_field\Timezone\TimezoneProviderInterface
    */
   protected $timezoneProvider;
 
@@ -124,7 +124,7 @@ class CalendarPropertyProcessor {
 
   /**
    * @return array
-   * @throws \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
+   * @throws \Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException
    * @throws \InvalidArgumentException
    */
   private function processDateList(ContentEntityInterface $contentEntity) {
@@ -150,7 +150,7 @@ class CalendarPropertyProcessor {
    *
    * @return bool
    *
-   * @throws \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
+   * @throws \Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException
    *   True if the check was successful, otherwise false.
    *
    * @throws CalendarDownloadInvalidPropertiesException

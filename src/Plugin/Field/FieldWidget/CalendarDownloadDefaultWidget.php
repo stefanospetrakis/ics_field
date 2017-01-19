@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\px_calendar_download\Plugin\Field\FieldWidget;
+namespace Drupal\ics_field\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityForm;
@@ -14,8 +14,8 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Utility\Token;
 use Drupal\file\Entity\File;
-use Drupal\px_calendar_download\CalendarProperty\CalendarPropertyProcessor;
-use Drupal\px_calendar_download\ICalFactory;
+use Drupal\ics_field\CalendarProperty\CalendarPropertyProcessor;
+use Drupal\ics_field\ICalFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -120,10 +120,10 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       $container->get('request_stack')->getCurrentRequest(),
       $container->get('token'),
       $container->get('entity_field.manager'),
-      $container->get('logger.factory')->get('px_calendar_download'),
-      $container->get('px_calendar_download.calendar_property_processor_factory')
+      $container->get('logger.factory')->get('ics_field'),
+      $container->get('ics_field.calendar_property_processor_factory')
                 ->create($configuration['field_definition']),
-      $container->get('px_calendar_download.ical_factory')
+      $container->get('ics_field.ical_factory')
     );
   }
 
@@ -195,7 +195,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * @throws \LogicException
    * @throws \UnexpectedValueException
    * @throws \InvalidArgumentException
-   * @throws \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
+   * @throws \Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException
    */
   public function massageFormValues(array $values,
                                     array $form,
