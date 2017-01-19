@@ -48,7 +48,6 @@ class CalendarPropertyProcessor {
     'timezone',
     'product_identifier',
     'summary',
-    'dates_list',
     'uuid',
   ];
 
@@ -110,9 +109,12 @@ class CalendarPropertyProcessor {
                                       $this->tokenService->replace($tokens,
                                                                    $data));
 
+    //Validate before the date list, as we don't actually care if that field is empty as it should
+    //be possible to save a node without creating a ics file
+    $this->validate($calendarProperties);
+
     $calendarProperties['dates_list'] = $this->processDateList($contentEntity);
 
-    $this->validate($calendarProperties);
 
     return $calendarProperties;
   }

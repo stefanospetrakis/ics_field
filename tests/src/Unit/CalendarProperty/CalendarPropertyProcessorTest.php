@@ -66,17 +66,24 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
   }
 
   /**
-   * Test failing validation with a missing date list
-   *
-   * @expectedException \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
-   * @expectedExceptionMessageRegExp /Missing needed property \w+/
+   * Test passing validation with a missing date list
    */
   public function testWithEmptyDateList() {
 
-    $this->cpp->getCalendarProperties(array_combine($this->cpp->getEssentialProperties(),
-                                                    $this->cpp->getEssentialProperties()),
-                                      $this->ce,
-                                      'http');
+    $props = array_combine($this->cpp->getEssentialProperties(),
+                           $this->cpp->getEssentialProperties());
+
+    $expected = [
+      'timezone'           => 'timezone',
+      'product_identifier' => 'product_identifier',
+      'uuid'               => 'uuid',
+      'summary'            => 'summary',
+      'dates_list'         => []
+    ];
+
+    $this->assertArrayEquals($expected,
+                             $this->cpp->getCalendarProperties($props,
+                                                               $this->getContentEntityMock()));
 
   }
 
