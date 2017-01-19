@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\px_calendar_download\Unit;
+namespace Drupal\Tests\px_calendar_download;
 
 use Drupal\px_calendar_download\ICalFactory;
 use Drupal\px_calendar_download\Normalizer\UrlNormalizer;

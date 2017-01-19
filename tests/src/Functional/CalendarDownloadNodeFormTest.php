@@ -52,7 +52,7 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    *
-   * @expectedException Drupal\Core\Config\Schema\SchemaIncompleteException
+   * @expectedException \Drupal\Core\Config\Schema\SchemaIncompleteException
    */
   public function setUp() {
     parent::setUp();
