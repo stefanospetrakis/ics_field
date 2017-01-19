@@ -16,6 +16,9 @@ use Drupal\Tests\UnitTestCase;
  */
 class CalendarPropertyProcessorFactoryTest extends UnitTestCase {
 
+  /**
+   * Test making the class with the correct dependencies
+   */
   public function testInstantiation() {
 
     $tpi = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')
@@ -30,7 +33,11 @@ class CalendarPropertyProcessorFactoryTest extends UnitTestCase {
 
   }
 
+  /**
+   * Test generating output
+   */
   public function testGeneration() {
+
     $tpi = $this->getMockBuilder('Drupal\ics_field\Timezone\TimezoneProviderInterface')
                 ->getMock();
     $t = $this->getMockBuilder('Drupal\Core\Utility\Token')

@@ -63,10 +63,12 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
 
     $this->drupalLogin($this->adminUser);
 
+    $bundle = 'ics_test';
+
     $nodeType = NodeType::create([
-                                   'type'        => 'article',
-                                   'name'        => 'Article',
-                                   'description' => "Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.",
+                                   'type'        => $bundle,
+                                   'name'        => 'ics_test',
+                                   'description' => "Use <em>ics_test</em> for  testing ics.",
                                  ]);
     $nodeType->save();
 
@@ -82,10 +84,10 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
                     'field_name'  => 'field_dates',
                     'label'       => 'Dates',
                     'entity_type' => 'node',
-                    'bundle'      => 'article',
+                    'bundle'      => $bundle,
                   ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
-    entity_get_form_display('node', 'article', 'default')
+    entity_get_form_display('node', $bundle, 'default')
       ->setComponent('field_dates',
                      [
                        'type' => 'datetime_default',
@@ -110,16 +112,16 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
                     'field_name'  => 'field_ics_download',
                     'label'       => 'ICS Download',
                     'entity_type' => 'node',
-                    'bundle'      => 'article',
+                    'bundle'      => $bundle,
                   ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
-    entity_get_form_display('node', 'article', 'default')
+    entity_get_form_display('node', $bundle, 'default')
       ->setComponent('field_ics_download',
                      [
                        'type' => 'calendar_download_default_widget',
                      ])
       ->save();
-    entity_get_display('node', 'article', 'default')
+    entity_get_display('node', $bundle, 'default')
       ->setComponent('field_ics_download',
                      [
                        'type'     => 'calendar_download_default_formatter',
@@ -138,10 +140,10 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
                     'field_name'  => 'field_body',
                     'label'       => 'Body',
                     'entity_type' => 'node',
-                    'bundle'      => 'article',
+                    'bundle'      => $bundle,
                   ])->save();
     // Need to set the widget type, otherwise the form will not contain it.
-    entity_get_form_display('node', 'article', 'default')
+    entity_get_form_display('node', $bundle, 'default')
       ->setComponent('field_body',
                      [
                        'type'     => 'text_textarea_with_summary',
@@ -164,7 +166,7 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
 
     // Create a random date in the coming week.
-    $timestamp = REQUEST_TIME + mt_rand(0, 86400 * 7);
+    $timestamp = REQUEST_TIME + random_int(0, 86400 * 7);
     $dateValue0Date = gmdate(DATETIME_DATE_STORAGE_FORMAT, $timestamp);
     $dateValue0Time = gmdate('H:i:s', $timestamp);
 
@@ -176,7 +178,7 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
       'field_ics_download[0][summary]'     => '[node:title]',
       'field_ics_download[0][description]' => '[node:field_body]',
     ];
-    $this->drupalPostForm('node/add/article', $add, t('Save and publish'));
+    $this->drupalPostForm('node/add/ics_test', $add, t('Save and publish'));
 
     // Check that the node exists in the database.
     $node = $this->drupalGetNodeByTitle($add['title[0][value]']);

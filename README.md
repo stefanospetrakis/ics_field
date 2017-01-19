@@ -86,6 +86,4 @@ We use a Github pull request workflow. Each pull request should have a related a
 
 We welcome contributions in the following areas
 
-* Additional migrate commands - if you have a good drupal console migrate command we want to include it
-* Unit tests - as this is a port it currently has no testing, we would like to change this
-* Refactoring - only minimal refactoring has been done so far. Further refactoring would be happily accepted
+* Unit tests - Test coverage is currently good but not great.
