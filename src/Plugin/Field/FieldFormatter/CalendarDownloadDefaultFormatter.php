@@ -24,34 +24,9 @@ class CalendarDownloadDefaultFormatter extends FormatterBase {
 
   /**
    * {@inheritdoc}
-   */
-  public static function defaultSettings() {
-    return [
-      // Implement default settings.
-    ] + parent::defaultSettings();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function settingsForm(array $form, FormStateInterface $formState) {
-    return [
-      // Implement settings form.
-    ] + parent::settingsForm($form, $formState);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function settingsSummary() {
-    $summary = [];
-    // Implement settings summary.
-
-    return $summary;
-  }
-
-  /**
-   * {@inheritdoc}
+   *
+   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
+   * @throws \InvalidArgumentException
    */
   public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = [];
@@ -70,11 +45,14 @@ class CalendarDownloadDefaultFormatter extends FormatterBase {
    *   One field item.
    *
    * @return mixed[]|null
+   *
+   * @throws \InvalidArgumentException
+   * @throws \Drupal\Core\TypedData\Exception\MissingDataException
    *   A render array for a link element.
    */
   protected function viewValue(FieldItemInterface $item) {
-    $fileref = $item->get('fileref')->getValue();
-    $file = File::load($fileref);
+    $fileRef = $item->get('fileref')->getValue();
+    $file = File::load($fileRef);//TODO - once formatter classes get container access replace with DI
     if ($file) {
       $fileUrlObj = Url::fromUri(file_create_url($file->getFileUri()));
       $build = [
