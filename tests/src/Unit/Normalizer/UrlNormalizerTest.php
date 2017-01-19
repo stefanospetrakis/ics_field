@@ -6,7 +6,7 @@
  * Time: 01:24
  */
 
-namespace Drupal\Tests\ics_field;
+namespace Drupal\Tests\ics_field\Unit\Normalizer;
 
 use Drupal\ics_field\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;

@@ -6,7 +6,7 @@
  * Time: 12:38
  */
 
-namespace Drupal\Tests\ics_field\CalendarProperty;
+namespace Drupal\Tests\ics_field\Unit\CalendarProperty;
 
 use Drupal\ics_field\CalendarProperty\CalendarPropertyProcessorFactory;
 use Drupal\Tests\UnitTestCase;

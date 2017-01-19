@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\Tests\ics_field;
+namespace Drupal\Tests\ics_field\Unit;
 
 use Drupal\ics_field\ICalFactory;
 use Drupal\ics_field\Normalizer\UrlNormalizer;

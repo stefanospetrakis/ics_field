@@ -6,7 +6,7 @@
  * Time: 21:48
  */
 
-namespace Drupal\Tests\ics_field\CalendarProperty;
+namespace Drupal\Tests\ics_field\Unit\CalendarProperty;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\ics_field\CalendarProperty\CalendarPropertyProcessor;

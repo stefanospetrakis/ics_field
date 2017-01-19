@@ -6,7 +6,7 @@
  * Time: 00:05
  */
 
-namespace Drupal\Tests\ics_field;
+namespace Drupal\Tests\ics_field\Unit;
 
 use Drupal\ics_field\ICalTimezoneGenerator;
 
