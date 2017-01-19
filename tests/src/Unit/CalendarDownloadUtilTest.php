@@ -2,12 +2,11 @@
 
 namespace Drupal\Tests\px_calendar_download\Unit;
 
-use Drupal\Tests\UnitTestCase;
-use Drupal\px_calendar_download\CalendarDownloadUtil;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\px_calendar_download\CalendarDownloadUtil;
+use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\px_calendar_download\CalendarDownloadUtil
  * @group px_calendar_download
  */
 class CalendarDownloadUtilTest extends UnitTestCase {
@@ -27,195 +26,7 @@ class CalendarDownloadUtilTest extends UnitTestCase {
   ];
 
   /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlEmpty($request) {
-    $url = '';
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertNull($normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Empty URL given, null returned");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlPrefixMissingProtocolSinglePart($request) {
-    $url = 'drupal';
-    $expectedUrl = $request->getSchemeAndHttpHost() . '/' . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Relative path given, absolute returned.");
-
-    $url = 'drupal/subnode';
-    $expectedUrl = $request->getSchemeAndHttpHost() . '/' . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Relative path given, absolute returned.");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlPrefixMissingProtocolTwoParts($request) {
-    $url = 'drupal.org';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (mydomain.com) given, added protocol to URL returned");
-
-    $url = 'drupal.org/node';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (mydomain.com) given, added protocol to URL returned");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlPrefixMissingProtocolThreeParts($request) {
-    $url = 'www.drupal.org';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (www.mydomain.com) given, added protocol to URL returned");
-
-    $url = 'www.drupal.org/node';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (www.mydomain.com) given, added protocol to URL returned");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlSubSubSubdomain($request) {
-    $url = 'sub1.sub2.www.drupal.org';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (www.mydomain.com) given, added protocol to URL returned");
-
-    $url = 'sub1.sub2.www.drupal.org/node';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (www.mydomain.com) given, added protocol to URL returned");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlRelativePath($request) {
-    $url = '/node';
-    $expectedUrl = $request->getSchemeAndHttpHost() . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Relative path given, absolute returned.");
-
-    $url = '/node/1';
-    $expectedUrl = $request->getSchemeAndHttpHost() . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Relative path given, absolute returned.");
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlIpAddress($request) {
-    $url = '10.0.0.1';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (mydomain.com) given, added protocol to URL returned");
-
-    $url = '10.0.0.1/node';
-    $expectedUrl = $request->getScheme() . '://' . $url;
-
-    $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url),
-    "Missing protocol in URL (mydomain.com) given, added protocol to URL returned");
-
-  }
-
-  /**
-   * Tests URL normalization.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::normalizeUrl
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testNormalizeUrlIllegalCharactersForHostnames($request) {
-    $urls = [
-      'node.',
-      '.node',
-      '.some.node',
-      '#node',
-      'some#node',
-      'node#',
-      'some.node#',
-      'node#anchor',
-      'some.node#anchor',
-      'node#anchor?',
-      '#anchor',
-      '#anchor?',
-      'node#anchor?so=',
-      'node#anchor?so=me&',
-      'node#anchor?so=me&query=string',
-      'some.node#anchor?so=me&query=string',
-    ];
-
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $normalizeUrlReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'normalizeUrl');
-    foreach ($urls as $url) {
-      // All these incomplete URLs should be treated as relative paths.
-      $expectedUrl = $request->getSchemeAndHttpHost() . '/' . $url;
-      $this->assertEquals($expectedUrl, $normalizeUrlReflectedMethod->invoke($calendarUtil, $url), "Relative path given, absolute returned.");
-    }
-  }
-
-  /**
    * Tests dates sorting.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::getMinMaxTimestamps
    *
    * @dataProvider schemeHttpHostProvider
    */
@@ -244,40 +55,6 @@ class CalendarDownloadUtilTest extends UnitTestCase {
   /**
    * Tests calendar properties validation.
    *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::checkProperties
-   * @expectedException Drupal\px_calendar_download\CalendarDownloadInvalidPropertiesException
-   * @expectedExceptionMessage Missing needed property product_identifier.
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testCheckPropertiesMissingProductIdentifier($request) {
-    $invalidCalendarProperties = $this->validCalendarProperties;
-    unset($invalidCalendarProperties['product_identifier']);
-    $this->mockStringTranslationService();
-    $calendarUtil = new CalendarDownloadUtil($invalidCalendarProperties, $request);
-  }
-
-  /**
-   * Tests calendar properties validation.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::checkProperties
-   * @expectedException Drupal\px_calendar_download\CalendarDownloadInvalidPropertiesException
-   * @expectedExceptionMessageRegExp /Missing needed property [\w_]+\./
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testCheckPropertiesMissingProperty($request) {
-    $invalidCalendarProperties = $this->validCalendarProperties;
-    unset($invalidCalendarProperties['summary']);
-    $this->mockStringTranslationService();
-    $calendarUtil = new CalendarDownloadUtil($invalidCalendarProperties, $request);
-  }
-
-  /**
-   * Tests calendar properties validation.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::checkProperties
-   *
    * @dataProvider schemeHttpHostProvider
    */
   public function testCheckPropertiesHavingAll($request) {
@@ -287,8 +64,6 @@ class CalendarDownloadUtilTest extends UnitTestCase {
 
   /**
    * Tests calendar property getter function.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::getCalendarProperty
    *
    * @dataProvider schemeHttpHostProvider
    */
@@ -302,8 +77,6 @@ class CalendarDownloadUtilTest extends UnitTestCase {
 
   /**
    * Tests generated calendar.
-   *
-   * @covers Drupal\px_calendar_download\CalendarDownloadUtil::generate
    *
    * @dataProvider schemeHttpHostProvider
    */
@@ -418,5 +191,7 @@ class CalendarDownloadUtilTest extends UnitTestCase {
     }
     return $dataProvidedArray;
   }
+
+
 
 }

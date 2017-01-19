@@ -2,18 +2,20 @@
 
 namespace Drupal\px_calendar_download;
 
-use Html2Text\Html2Text;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException;
 use Eluceo\iCal\Component\Calendar;
 use Eluceo\iCal\Component\Event;
 use Eluceo\iCal\Component\Timezone;
 use Eluceo\iCal\Component\TimezoneRule;
+use Html2Text\Html2Text;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Utility class for generating calendars.
  */
 class CalendarDownloadUtil {
+
   use StringTranslationTrait;
 
   /**
@@ -40,7 +42,7 @@ class CalendarDownloadUtil {
   /**
    * Constructs a new CalendarDownloadUtil.
    *
-   * @param string[] $calendarProperties
+   * @param string[]                                  $calendarProperties
    *   An array of calendar properties.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request stack used to retrieve the current request.
@@ -51,7 +53,6 @@ class CalendarDownloadUtil {
    * @codeCoverageIgnore
    */
   public function __construct(array $calendarProperties, Request $request) {
-    $this->checkProperties($calendarProperties);
     $this->calendarProperties = $calendarProperties;
     $this->request = $request;
     $this->userDatetimezone = new \DateTimeZone($this->getCalendarProperty('timezone'));
@@ -63,18 +64,20 @@ class CalendarDownloadUtil {
    * @param string $propertyName
    *   The key of a property in the calendarProperties array.
    *
-   * @return string|null
+   * @return string|array|null
    *   The value of that property or NULL if not found.
    */
   protected function getCalendarProperty($propertyName) {
-    return isset($this->calendarProperties[$propertyName]) ? $this->calendarProperties[$propertyName] : NULL;
+    return isset($this->calendarProperties[$propertyName]) ?
+      $this->calendarProperties[$propertyName] : NULL;
   }
 
   /**
    * Generates an .ics file as a string.
    *
-   * @return string
-   *   The generated ical file as a string.
+   * @return string The generated ical file as a string.
+   *
+   * @throws \InvalidArgumentException
    *
    * @throws \UnexpectedValueException
    */
@@ -82,8 +85,23 @@ class CalendarDownloadUtil {
     // The provided 'product_identifier' will be used for iCal's PRODID.
     $iCalendar = new Calendar($this->getCalendarProperty('product_identifier'));
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
-    $iCalendar->setTimezone($this->applyTimezoneTransitions($iCalendarTimezone));
-    $iCalendar = $this->addEvents($this->getCalendarProperty('dates_list'), $iCalendar);
+
+    /** @var Timezone $trs */
+    $trs = $this->applyTimezoneTransitions($iCalendarTimezone);
+
+    $tg = new IcalTimezoneGenerator();
+    /** @var Timezone $trans */
+    $trans = $tg->applyTimezoneTransitions($iCalendarTimezone,
+                                           $this->getCalendarProperty('dates_list'));
+
+    $iCalendar->setTimezone($trans);
+
+    if ($trs !== $trans) {
+      $a=0;
+    }
+
+    $iCalendar = $this->addEvents($this->getCalendarProperty('dates_list'),
+                                  $iCalendar);
 
     return $iCalendar->render();
   }
@@ -102,7 +120,8 @@ class CalendarDownloadUtil {
   private function addEvents(array $datesList, Calendar $iCalendar) {
     // Using html2text to convert markup into reasonable ASCII text.
     $html2Text = new Html2Text($this->getCalendarProperty('description'));
-    $eventUrl = $this->getCalendarProperty('url') ? $this->normalizeUrl($this->getCalendarProperty('url')) : '';
+    $eventUrl = $this->getCalendarProperty('url') ?
+      $this->normalizeUrl($this->getCalendarProperty('url')) : '';
     foreach ($datesList as $dateIdx => $date) {
       // We need this eventUniqId to be the same on
       // following versions of the generated file, in
@@ -115,7 +134,7 @@ class CalendarDownloadUtil {
       $datetime = new \DateTime($date, new \DateTimeZone('UTC'));
       // Set the datetime object using user's timezone.
       // This way the correct time offset will be applied.
-      $datetime->setTimeZone($this->userDatetimezone);
+      $datetime->setTimezone($this->userDatetimezone);
       $iCalendarEvent
         ->setDtStart($datetime)
         ->setSummary($this->getCalendarProperty('summary'))
@@ -128,35 +147,6 @@ class CalendarDownloadUtil {
       $iCalendar->addComponent($iCalendarEvent);
     }
     return $iCalendar;
-  }
-
-  /**
-   * Check that the calendar properties are valid.
-   *
-   * @param string[] $calendarProperties
-   *   An array of calendar properties.
-   *
-   * @return bool
-   *   True if the check was successful, otherwise false.
-   *
-   * @throws CalendarDownloadInvalidPropertiesException
-   *   An invalid (empty) calendar property exception.
-   */
-  protected function checkProperties(array $calendarProperties) {
-    // N.B.: There could be more complex validation taking place here.
-    $essentialProperties = [
-      'timezone',
-      'product_identifier',
-      'summary',
-      'dates_list',
-      'uuid',
-    ];
-    foreach ($essentialProperties as $essentialProperty) {
-      if (empty($calendarProperties[$essentialProperty])) {
-        throw new CalendarDownloadInvalidPropertiesException($this->t('Missing needed property @propertyName.', ['@propertyName' => $essentialProperty]));
-      }
-    }
-    return TRUE;
   }
 
   /**
@@ -191,10 +181,10 @@ class CalendarDownloadUtil {
       // *-parts URLs are also covered.
       if (preg_match('#^(\w+\.)+\w+(/?|(/.*))$#', $url)) {
         $url = $this->request->getScheme() . '://' . $url;
-      }
-      // This must be an internal path since it doesn't look like a web-address.
+      } // This must be an internal path since it doesn't look like a web-address.
       else {
-        $url = $this->request->getSchemeAndHttpHost() . (strpos($url, '/', 0) === 0 ? '' : '/') . $url;
+        $url = $this->request->getSchemeAndHttpHost() .
+               (strpos($url, '/', 0) === 0 ? '' : '/') . $url;
       }
     }
     return $url;
@@ -210,6 +200,7 @@ class CalendarDownloadUtil {
    *   depending on the user's timezone.
    *
    * @return Timezone
+   * @throws \InvalidArgumentException
    *   The modified timezone object.
    */
   protected function applyTimezoneTransitions(Timezone $iCalendarTimezone) {
@@ -217,7 +208,7 @@ class CalendarDownloadUtil {
     list($from, $to) = $this->getMinMaxTimestamps($this->getCalendarProperty('dates_list'));
 
     // Get all transitions for one year back/ahead.
-    $year = 86400 * 360;
+    $year = 360 * 86400;
     $now = time();
     $from = $from ?: $now;
     $to = $to ?: $now;
@@ -226,11 +217,12 @@ class CalendarDownloadUtil {
 
     $standardComponent = NULL;
     $daylightComponent = NULL;
+    $timezoneOffsetFrom = 0;
     foreach ($transitions as $transitionIdx => $transition) {
       $component = NULL;
 
       // Skip the first entry ...
-      if ($transitionIdx == 0) {
+      if ($transitionIdx === 0) {
         // ... but remember the offset for the next TZOFFSETFROM value.
         $timezoneOffsetFrom = $transition['offset'] / 3600;
         continue;
@@ -240,8 +232,7 @@ class CalendarDownloadUtil {
       if ($transition['isdst']) {
         $timezoneDaylightComponent = $transition['ts'];
         $component = $daylightComponent = new TimezoneRule(TimezoneRule::TYPE_DAYLIGHT);
-      }
-      // Standard time definition.
+      } // Standard time definition.
       else {
         $timezoneStandardComponent = $transition['ts'];
         $component = $standardComponent = new TimezoneRule(TimezoneRule::TYPE_STANDARD);
@@ -253,15 +244,16 @@ class CalendarDownloadUtil {
 
         $component->setDtStart($datetime);
         $component->setTzOffsetFrom(sprintf('%s%02d%02d',
-                                      $timezoneOffsetFrom >= 0 ? '+' : '',
-                                      floor($timezoneOffsetFrom),
-                                      ($timezoneOffsetFrom - floor($timezoneOffsetFrom)) * 60
-                                      ));
-        $component->setTzOffsetTo(sprintf('%s%02d%02d',
-                                    $offset >= 0 ? '+' : '',
-                                    floor($offset),
-                                    ($offset - floor($offset)) * 60
+                                            $timezoneOffsetFrom >= 0 ? '+' : '',
+                                            floor($timezoneOffsetFrom),
+                                            ($timezoneOffsetFrom -
+                                             floor($timezoneOffsetFrom)) * 60
                                     ));
+        $component->setTzOffsetTo(sprintf('%s%02d%02d',
+                                          $offset >= 0 ? '+' : '',
+                                          floor($offset),
+                                          ($offset - floor($offset)) * 60
+                                  ));
         // Add abbreviated timezone name if available.
         if (!empty($transition['abbr'])) {
           $component->setTzName($transition['abbr']);
@@ -275,7 +267,8 @@ class CalendarDownloadUtil {
       if ($standardComponent &&
           $daylightComponent &&
           min($timezoneStandardComponent, $timezoneDaylightComponent) < $from &&
-          max($timezoneStandardComponent, $timezoneDaylightComponent) > $to) {
+          max($timezoneStandardComponent, $timezoneDaylightComponent) > $to
+      ) {
         break;
       }
     }

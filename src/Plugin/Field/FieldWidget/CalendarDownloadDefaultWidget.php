@@ -2,10 +2,9 @@
 
 namespace Drupal\px_calendar_download\Plugin\Field\FieldWidget;
 
-use Drupal\Core\Datetime\DrupalDateTime;
-use Drupal\Core\Entity\EntityFieldManager;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityForm;
-use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
@@ -14,8 +13,9 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Utility\Token;
 use Drupal\file\Entity\File;
-use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\px_calendar_download\CalendarDownloadUtil;
+use Drupal\px_calendar_download\CalendarPropertyProcessor;
+use Drupal\px_calendar_download\Timezone\DrupalUserTimezoneProvider;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -61,6 +61,11 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   protected $tokenService;
 
   /**
+   * @var CalendarPropertyProcessor
+   */
+  protected $calendarPropertyProcessor;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct($pluginId,
@@ -71,7 +76,8 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
                               Request $request,
                               Token $tokenService,
                               EntityFieldManager $entityFieldManager,
-                              LoggerChannelInterface $logger) {
+                              LoggerChannelInterface $logger,
+                              CalendarPropertyProcessor $calendarPropertyProcessor) {
     parent::__construct($pluginId,
                         $pluginDefinition,
                         $fieldDefinition,
@@ -82,6 +88,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     $this->tokenService = $tokenService;
     $this->entityFieldManager = $entityFieldManager;
     $this->logger = $logger;
+    $this->calendarPropertyProcessor = $calendarPropertyProcessor;
   }
 
   /**
@@ -94,6 +101,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
                                 array $configuration,
                                 $pluginId,
                                 $pluginDefinition) {
+
     return new static(
       $pluginId,
       $pluginDefinition,
@@ -103,8 +111,16 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       $container->get('request_stack')->getCurrentRequest(),
       $container->get('token'),
       $container->get('entity_field.manager'),
-      $container->get('logger.factory')->get('px_calendar_download')
+      $container->get('logger.factory')->get('px_calendar_download'),
+      new CalendarPropertyProcessor($container->get('token'),
+                                    new DrupalUserTimezoneProvider(),
+                                    $configuration['field_definition']->getSetting('date_field_reference'),
+                                    $configuration['field_definition']->getConfig($configuration['field_definition']->getTargetBundle())
+                                                                      ->uuid(),
+                                    $container->get('string_translation')
+      )
     );
+    //TODO make this in the container or make a factory
   }
 
   /**
@@ -179,7 +195,9 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
 
     // If cardinality is 1, ensure a label is output for the field by wrapping
     // it in a details element.
-    if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() === 1) {
+    if ($this->fieldDefinition->getFieldStorageDefinition()
+                              ->getCardinality() === 1
+    ) {
       $element += ['#type' => 'fieldset'];
     }
 
@@ -204,8 +222,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
         if (isset($fieldDefinitions[$key])) {
           try {
             $contentEntity->set($key, $value);
-          }
-          catch (\InvalidArgumentException $e) {
+          } catch (\InvalidArgumentException $e) {
             $this->logger->error($e->getMessage());
           }
         }
@@ -220,17 +237,26 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   /**
    * Generate and save an .ics file.
    *
-   * @param mixed[]         $formValue
+   * @param mixed[]           $formValue
    *   Incoming array with the form values of the widget.
    * @param ContentEntityBase $contentEntity
    *   Incoming content entity with the rest of the entity's submitted values.
    *
    * @throws \UnexpectedValueException
+   * @throws \InvalidArgumentException
+   * @throws \Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException
    */
   private function updateManagedCalFile(array &$formValue,
                                         ContentEntityBase $contentEntity) {
-    $calendarProperties = $this->instantiateCalendarProperties($formValue,
-                                                               $contentEntity);
+
+    $calendarProperties = $this->calendarPropertyProcessor->getCalendarProperties([
+                                                                                    'summary'     => $formValue['summary'],
+                                                                                    'url'         => $formValue['url'],
+                                                                                    'description' => $formValue['description'],
+                                                                                  ],
+                                                                                  $contentEntity,
+                                                                                  $this->request->getHost());
+
     if (!empty($calendarProperties['dates_list'])) {
       try {
         $calendarDownloadUtil = new CalendarDownloadUtil($calendarProperties,
@@ -248,58 +274,13 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   }
 
   /**
-   * Instantiate the calendar's properties.
-   *
-   * @param mixed[]         $formValue
-   *   Incoming array with the form values of the widget.
-   * @param ContentEntityBase $contentEntity
-   *   Incoming content entity with the rest of the entity's submitted values.
-   *
-   * @return string[]
-   *
-   * @throws \UnexpectedValueException
-   *   Returns an array of instantiated calendarProperties.
-   */
-  private function instantiateCalendarProperties(array $formValue,
-                                                 ContentEntityBase $contentEntity) {
-    $calendarProperties = [];
-    // Set default timezone
-    // Note: Use the following if we want to use the site's timezone.
-    // $calendarProperties['timezone'] = \Drupal::config('system.date')->get('timezone.default');
-    $calendarProperties['timezone'] = drupal_get_user_timezone();
-    // Use the hostname to set the 'product_identifier' value.
-    $calendarProperties['product_identifier'] = $this->request->getHost();
-    // Uses token replacement to interpolate tokens in the field's fields that support them.
-    $calendarProperties['summary'] = $this->tokenService->replace($formValue['summary'],
-                                                                  [$contentEntity->getEntityTypeId() => $contentEntity]);
-    $calendarProperties['url'] = $this->tokenService->replace($formValue['url'],
-                                                              [$contentEntity->getEntityTypeId() => $contentEntity]);
-    $calendarProperties['description'] = $this->tokenService->replace($formValue['description'],
-                                                                      [$contentEntity->getEntityTypeId() => $contentEntity]);
-    $calendarProperties['uuid'] = $contentEntity->uuid() .
-                                  $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid();
-
-    $calendarProperties['dates_list'] = [];
-    $dateFieldReference = $this->fieldDefinition->getSetting('date_field_reference');
-    if (!empty($dateFieldReference)) {
-      foreach ($contentEntity->get($dateFieldReference)->getValue() as $dateVal) {
-        if (!$dateVal['value'] instanceof DrupalDateTime) {
-          continue;
-        }
-        $calendarProperties['dates_list'][] = $dateVal['value']->render();
-      }
-    }
-    return $calendarProperties;
-  }
-
-  /**
    * Create/Update managed ical file.
    *
    * @param ContentEntityBase $contentEntity
    *   Incoming content entity with the rest of the entity's submitted values.
-   * @param string          $icsFileStr
+   * @param string            $icsFileStr
    *   The ics file as a string.
-   * @param int             $fileId
+   * @param int               $fileId
    *   The file id of the managed ical file.
    *
    * @return int
@@ -326,16 +307,18 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                      $fileDirectory);
       if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
-        $fileName = md5($contentEntity->uuid() . $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->uuid()) .
+        $fileName = md5($contentEntity->uuid() .
+                        $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())
+                                              ->uuid()) .
                     '_event.ics';
         $fileUri = $uploadLocation . '/' . $fileName;
         $file = file_save_data($icsFileStr,
                                $fileUri,
                                FILE_EXISTS_REPLACE);
-        if (!$file) {
-          $this->handleFileSaveError($fileUri);
+        if ($file) {
+          return $file->id();
         }
-        return $file->id();
+        $this->handleFileSaveError($fileUri);
       } else {
         $this->handleDirectoryError($uploadLocation);
       }
@@ -352,7 +335,8 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *   An array of FieldDefinitionInterfaces for all fields/properties.
    */
   private function getEntityFieldDefinitions() {
-    $attBundle = $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())->get('bundle');
+    $attBundle = $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())
+                                       ->get('bundle');
     $attEntityType = $this->fieldDefinition->get('entity_type');
     $fieldDefinitions = array_filter(
                           $this->entityFieldManager->getBaseFieldDefinitions($attEntityType),
@@ -403,7 +387,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    * @param FormStateInterface $formState
    *   Incoming FormStateInterface object.
    *
-   * @return ContentEntityBase|NULL
+   * @return ContentEntityBase|null
    */
   private function getContentEntityFromForm(FormStateInterface $formState) {
     $formObject = $formState->getFormObject();
