@@ -105,16 +105,19 @@ class CalendarPropertyProcessor {
 
     // Uses token replacement to interpolate tokens in the field's fields that support them.
     $data = [$contentEntity->getEntityTypeId() => $contentEntity];
-    $calendarProperties = array_merge($calendarProperties,
-                                      $this->tokenService->replace($tokens,
-                                                                   $data));
+
+    $replaced = [];
+    foreach ($tokens as $id => $token) {
+      $replaced[$id] = $this->tokenService->replace($token, $data);
+    }
+
+    $calendarProperties = array_merge($calendarProperties, $replaced);
 
     //Validate before the date list, as we don't actually care if that field is empty as it should
     //be possible to save a node without creating a ics file
     $this->validate($calendarProperties);
 
     $calendarProperties['dates_list'] = $this->processDateList($contentEntity);
-
 
     return $calendarProperties;
   }
