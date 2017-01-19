@@ -3,7 +3,7 @@
 namespace Drupal\px_calendar_download;
 
 use Drupal\Core\StringTranslation\StringTranslationTrait;
-use Drupal\px_calendar_download\Exception\CalendarDownloadInvalidPropertiesException;
+use Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface;
 use Eluceo\iCal\Component\Calendar;
 use Eluceo\iCal\Component\Event;
 use Eluceo\iCal\Component\Timezone;
@@ -40,22 +40,29 @@ class CalendarDownloadUtil {
   protected $userDatetimezone;
 
   /**
+   * @var \Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface
+   */
+  protected $urlNormalizer;
+
+  /**
    * Constructs a new CalendarDownloadUtil.
    *
-   * @param string[]                                  $calendarProperties
+   * @param string[]                                                       $calendarProperties
    *   An array of calendar properties.
-   * @param \Symfony\Component\HttpFoundation\Request $request
+   * @param \Symfony\Component\HttpFoundation\Request                      $request
    *   The request stack used to retrieve the current request.
    *
-   * @throws CalendarDownloadInvalidPropertiesException
-   *   Thrown if the properties provided are invalid.
+   * @param \Drupal\px_calendar_download\Normalizer\UrlNormalizerInterface $normalizer
    *
    * @codeCoverageIgnore
    */
-  public function __construct(array $calendarProperties, Request $request) {
+  public function __construct(array $calendarProperties,
+                              Request $request,
+                              UrlNormalizerInterface $normalizer) {
     $this->calendarProperties = $calendarProperties;
     $this->request = $request;
     $this->userDatetimezone = new \DateTimeZone($this->getCalendarProperty('timezone'));
+    $this->urlNormalizer = $normalizer;
   }
 
   /**
@@ -87,18 +94,19 @@ class CalendarDownloadUtil {
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
 
     /** @var Timezone $trs */
-    $trs = $this->applyTimezoneTransitions($iCalendarTimezone);
-
+//    $trs = $this->applyTimezoneTransitions($iCalendarTimezone);
+//
     $tg = new IcalTimezoneGenerator();
+
     /** @var Timezone $trans */
     $trans = $tg->applyTimezoneTransitions($iCalendarTimezone,
                                            $this->getCalendarProperty('dates_list'));
 
     $iCalendar->setTimezone($trans);
 
-    if ($trs !== $trans) {
-      $a=0;
-    }
+//    if ($trs !== $trans) {
+//      $a = 0;
+//    }
 
     $iCalendar = $this->addEvents($this->getCalendarProperty('dates_list'),
                                   $iCalendar);
@@ -121,7 +129,10 @@ class CalendarDownloadUtil {
     // Using html2text to convert markup into reasonable ASCII text.
     $html2Text = new Html2Text($this->getCalendarProperty('description'));
     $eventUrl = $this->getCalendarProperty('url') ?
-      $this->normalizeUrl($this->getCalendarProperty('url')) : '';
+      $this->urlNormalizer->normalize($this->getCalendarProperty('url'),
+                                      $this->request->getScheme(),
+                                      $this->request->getSchemeAndHttpHost()) :
+      '';
     foreach ($datesList as $dateIdx => $date) {
       // We need this eventUniqId to be the same on
       // following versions of the generated file, in
@@ -150,47 +161,6 @@ class CalendarDownloadUtil {
   }
 
   /**
-   * Some rudimentary URL parsing.
-   *
-   * Processes a URL to make sure it has a canonical form,
-   * e.g. protocol://some.domain.name.
-   * There are much more complex regexes for this, but there
-   * is little gain, since the iCal RFC itself does not require
-   * valid URLs in this field.
-   *
-   * @link http://www.kanzaki.com/docs/ical/url.html
-   * @link https://mathiasbynens.be/demo/url-regex
-   *
-   * @param string $url
-   *   Incoming string that contains a URL.
-   *
-   * @return string|null
-   *   A normalized URL string or null otherwise.
-   */
-  protected function normalizeUrl(string $url) {
-    if (empty($url)) {
-      return NULL;
-    }
-    $url = strip_tags($url);
-    // Check if a URL_SCHEME is part of the $url
-    // If it's missing, we will try to add it.
-    if (empty(parse_url($url, PHP_URL_SCHEME))) {
-      // Check to see if the $url consists of 2 or 3 parts
-      // e.g. 2parts => website.com, 3parts => my.website.com
-      // like a web-address without a protocol would look like.
-      // *-parts URLs are also covered.
-      if (preg_match('#^(\w+\.)+\w+(/?|(/.*))$#', $url)) {
-        $url = $this->request->getScheme() . '://' . $url;
-      } // This must be an internal path since it doesn't look like a web-address.
-      else {
-        $url = $this->request->getSchemeAndHttpHost() .
-               (strpos($url, '/', 0) === 0 ? '' : '/') . $url;
-      }
-    }
-    return $url;
-  }
-
-  /**
    * Getting the daylight-saving and standard timezones.
    *
    * Shamelessly copied over from http://stackoverflow.com/a/25971680/5875098.
@@ -203,77 +173,77 @@ class CalendarDownloadUtil {
    * @throws \InvalidArgumentException
    *   The modified timezone object.
    */
-  protected function applyTimezoneTransitions(Timezone $iCalendarTimezone) {
-    // First: find the oldest and newest event dates.
-    list($from, $to) = $this->getMinMaxTimestamps($this->getCalendarProperty('dates_list'));
-
-    // Get all transitions for one year back/ahead.
-    $year = 360 * 86400;
-    $now = time();
-    $from = $from ?: $now;
-    $to = $to ?: $now;
-    $datetimezone = new \DateTimeZone($iCalendarTimezone->getZoneIdentifier());
-    $transitions = $datetimezone->getTransitions($from - $year, $to + $year);
-
-    $standardComponent = NULL;
-    $daylightComponent = NULL;
-    $timezoneOffsetFrom = 0;
-    foreach ($transitions as $transitionIdx => $transition) {
-      $component = NULL;
-
-      // Skip the first entry ...
-      if ($transitionIdx === 0) {
-        // ... but remember the offset for the next TZOFFSETFROM value.
-        $timezoneOffsetFrom = $transition['offset'] / 3600;
-        continue;
-      }
-
-      // Daylight saving time definition.
-      if ($transition['isdst']) {
-        $timezoneDaylightComponent = $transition['ts'];
-        $component = $daylightComponent = new TimezoneRule(TimezoneRule::TYPE_DAYLIGHT);
-      } // Standard time definition.
-      else {
-        $timezoneStandardComponent = $transition['ts'];
-        $component = $standardComponent = new TimezoneRule(TimezoneRule::TYPE_STANDARD);
-      }
-
-      if ($component) {
-        $datetime = new \DateTime($transition['time'], $datetimezone);
-        $offset = $transition['offset'] / 3600;
-
-        $component->setDtStart($datetime);
-        $component->setTzOffsetFrom(sprintf('%s%02d%02d',
-                                            $timezoneOffsetFrom >= 0 ? '+' : '',
-                                            floor($timezoneOffsetFrom),
-                                            ($timezoneOffsetFrom -
-                                             floor($timezoneOffsetFrom)) * 60
-                                    ));
-        $component->setTzOffsetTo(sprintf('%s%02d%02d',
-                                          $offset >= 0 ? '+' : '',
-                                          floor($offset),
-                                          ($offset - floor($offset)) * 60
-                                  ));
-        // Add abbreviated timezone name if available.
-        if (!empty($transition['abbr'])) {
-          $component->setTzName($transition['abbr']);
-        }
-
-        $timezoneOffsetFrom = $offset;
-        $iCalendarTimezone->addComponent($component);
-      }
-
-      // We covered the entire date range.
-      if ($standardComponent &&
-          $daylightComponent &&
-          min($timezoneStandardComponent, $timezoneDaylightComponent) < $from &&
-          max($timezoneStandardComponent, $timezoneDaylightComponent) > $to
-      ) {
-        break;
-      }
-    }
-    return $iCalendarTimezone;
-  }
+//  protected function applyTimezoneTransitions(Timezone $iCalendarTimezone) {
+//    // First: find the oldest and newest event dates.
+//    list($from, $to) = $this->getMinMaxTimestamps($this->getCalendarProperty('dates_list'));
+//
+//    // Get all transitions for one year back/ahead.
+//    $year = 360 * 86400;
+//    $now = time();
+//    $from = $from ?: $now;
+//    $to = $to ?: $now;
+//    $datetimezone = new \DateTimeZone($iCalendarTimezone->getZoneIdentifier());
+//    $transitions = $datetimezone->getTransitions($from - $year, $to + $year);
+//
+//    $standardComponent = NULL;
+//    $daylightComponent = NULL;
+//    $timezoneOffsetFrom = 0;
+//    foreach ($transitions as $transitionIdx => $transition) {
+//      $component = NULL;
+//
+//      // Skip the first entry ...
+//      if ($transitionIdx === 0) {
+//        // ... but remember the offset for the next TZOFFSETFROM value.
+//        $timezoneOffsetFrom = $transition['offset'] / 3600;
+//        continue;
+//      }
+//
+//      // Daylight saving time definition.
+//      if ($transition['isdst']) {
+//        $timezoneDaylightComponent = $transition['ts'];
+//        $component = $daylightComponent = new TimezoneRule(TimezoneRule::TYPE_DAYLIGHT);
+//      } // Standard time definition.
+//      else {
+//        $timezoneStandardComponent = $transition['ts'];
+//        $component = $standardComponent = new TimezoneRule(TimezoneRule::TYPE_STANDARD);
+//      }
+//
+//      if ($component) {
+//        $datetime = new \DateTime($transition['time'], $datetimezone);
+//        $offset = $transition['offset'] / 3600;
+//
+//        $component->setDtStart($datetime);
+//        $component->setTzOffsetFrom(sprintf('%s%02d%02d',
+//                                            $timezoneOffsetFrom >= 0 ? '+' : '',
+//                                            floor($timezoneOffsetFrom),
+//                                            ($timezoneOffsetFrom -
+//                                             floor($timezoneOffsetFrom)) * 60
+//                                    ));
+//        $component->setTzOffsetTo(sprintf('%s%02d%02d',
+//                                          $offset >= 0 ? '+' : '',
+//                                          floor($offset),
+//                                          ($offset - floor($offset)) * 60
+//                                  ));
+//        // Add abbreviated timezone name if available.
+//        if (!empty($transition['abbr'])) {
+//          $component->setTzName($transition['abbr']);
+//        }
+//
+//        $timezoneOffsetFrom = $offset;
+//        $iCalendarTimezone->addComponent($component);
+//      }
+//
+//      // We covered the entire date range.
+//      if ($standardComponent &&
+//          $daylightComponent &&
+//          min($timezoneStandardComponent, $timezoneDaylightComponent) < $from &&
+//          max($timezoneStandardComponent, $timezoneDaylightComponent) > $to
+//      ) {
+//        break;
+//      }
+//    }
+//    return $iCalendarTimezone;
+//  }
 
   /**
    * Sort and return the oldest and newest event dates as timestamps.
@@ -284,18 +254,18 @@ class CalendarDownloadUtil {
    * @return integer[]
    *   The found pair of min and max timestamps.
    */
-  protected function getMinMaxTimestamps(array $datesList) {
-    $min = $max = strtotime(array_pop($datesList));
-    foreach ($datesList as $date) {
-      $timestamp = strtotime($date);
-      if ($timestamp > $max) {
-        $max = $timestamp;
-      }
-      if ($timestamp < $min) {
-        $min = $timestamp;
-      }
-    }
-    return [$min, $max];
-  }
+//  protected function getMinMaxTimestamps(array $datesList) {
+//    $min = $max = strtotime(array_pop($datesList));
+//    foreach ($datesList as $date) {
+//      $timestamp = strtotime($date);
+//      if ($timestamp > $max) {
+//        $max = $timestamp;
+//      }
+//      if ($timestamp < $min) {
+//        $min = $timestamp;
+//      }
+//    }
+//    return [$min, $max];
+//  }
 
 }

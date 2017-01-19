@@ -4,6 +4,7 @@ namespace Drupal\Tests\px_calendar_download\Unit;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\px_calendar_download\CalendarDownloadUtil;
+use Drupal\px_calendar_download\Normalizer\UrlNormalizer;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -17,40 +18,16 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    * @var array
    */
   protected $validCalendarProperties = [
-    'timezone' => 'Europe/Zurich',
+    'timezone'           => 'Europe/Zurich',
     'product_identifier' => 'my domain',
-    'summary' => 'An exciting event',
-    'description' => 'with a lot more information',
-    'dates_list' => ["1970-01-01 01:00:00 Europe/Zurich", "1971-02-02 02:00:00 Europe/Zurich"],
-    'uuid' => '123456789',
+    'summary'            => 'An exciting event',
+    'description'        => 'with a lot more information',
+    'dates_list'         => [
+      "1970-01-01 01:00:00 Europe/Zurich",
+      "1971-02-02 02:00:00 Europe/Zurich",
+    ],
+    'uuid'               => '123456789',
   ];
-
-  /**
-   * Tests dates sorting.
-   *
-   * @dataProvider schemeHttpHostProvider
-   */
-  public function testMinMaxTimestamps($request) {
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $getMinMaxTimestampsReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'getMinMaxTimestamps');
-    date_default_timezone_set('UTC');
-
-    $dates = ['1970-01-01 00:00:00', '1970-01-01 00:00:01'];
-    $expectedTimestamps = [0, 1];
-    $this->assertEquals($expectedTimestamps, $getMinMaxTimestampsReflectedMethod->invoke($calendarUtil, $dates), "A list of date strings was given, mix and max timestamps returned.");
-
-    $dates = ['1970-01-01 00:00:01', '1970-01-01 00:00:00'];
-    $expectedTimestamps = [0, 1];
-    $this->assertEquals($expectedTimestamps, $getMinMaxTimestampsReflectedMethod->invoke($calendarUtil, $dates), "A list of date strings was given, mix and max timestamps returned.");
-
-    $dates = [
-      '1970-01-01 00:00:01',
-      '1970-01-01 00:00:02',
-      '1970-01-01 00:00:00',
-    ];
-    $expectedTimestamps = [0, 2];
-    $this->assertEquals($expectedTimestamps, $getMinMaxTimestampsReflectedMethod->invoke($calendarUtil, $dates), "A list of date strings was given, mix and max timestamps returned.");
-  }
 
   /**
    * Tests calendar properties validation.
@@ -58,7 +35,9 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    * @dataProvider schemeHttpHostProvider
    */
   public function testCheckPropertiesHavingAll($request) {
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
+    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties,
+                                             $request,
+                                             new UrlNormalizer());
     $this->assertNotNull($calendarUtil);
   }
 
@@ -68,11 +47,18 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    * @dataProvider schemeHttpHostProvider
    */
   public function testCheckGettingProperty($request) {
-    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties, $request);
-    $getCalendarPropertyReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil', 'getCalendarProperty');
+    $calendarUtil = new CalendarDownloadUtil($this->validCalendarProperties,
+                                             $request,
+                                             new UrlNormalizer());
+    $getCalendarPropertyReflectedMethod = $this->getProtectedPropertyViaReflection('Drupal\px_calendar_download\CalendarDownloadUtil',
+                                                                                   'getCalendarProperty');
 
-    $this->assertNotNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil, 'timezone'), "Getting the value of an existing/set calendar property.");
-    $this->assertNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil, 'PROPERTY_WHICH_DOES_NOT_EXIST'), "Getting the value of an existing/set calendar property.");
+    $this->assertNotNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil,
+                                                                     'timezone'),
+                         "Getting the value of an existing/set calendar property.");
+    $this->assertNull($getCalendarPropertyReflectedMethod->invoke($calendarUtil,
+                                                                  'PROPERTY_WHICH_DOES_NOT_EXIST'),
+                      "Getting the value of an existing/set calendar property.");
   }
 
   /**
@@ -82,17 +68,24 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    */
   public function testCalendarGeneration($request) {
     $calProperties = [
-      'timezone' => 'Europe/Zurich',
+      'timezone'           => 'Europe/Zurich',
       'product_identifier' => 'my domain',
-      'summary' => 'An exciting event',
-      'description' => 'with a lot more information',
-      'dates_list' => ["1970-01-01 01:00:00 Europe/Zurich", "1971-02-02 02:00:00 Europe/Zurich"],
-      'uuid' => '123456789',
+      'summary'            => 'An exciting event',
+      'description'        => 'with a lot more information',
+      'dates_list'         => [
+        "1970-01-01 01:00:00 Europe/Zurich",
+        "1971-02-02 02:00:00 Europe/Zurich",
+      ],
+      'uuid'               => '123456789',
     ];
     $expectedStrMd5 = '33d28e98e1cc215716067e69ec9bf058';
-    $calendarUtil = new CalendarDownloadUtil($calProperties, $request);
-    // Ignore the DTSTAMP lines,they change constantly.    
-    $generatedStrMd5 = md5(preg_replace('#^DTSTAMP.*\n#m', '', $calendarUtil->generate()));
+    $calendarUtil = new CalendarDownloadUtil($calProperties,
+                                             $request,
+                                             new UrlNormalizer());
+    // Ignore the DTSTAMP lines,they change constantly.
+    $generatedStrMd5 = md5(preg_replace('#^DTSTAMP.*\n#m',
+                                        '',
+                                        $calendarUtil->generate()));
     $this->assertEquals($expectedStrMd5, $generatedStrMd5);
 
     // Expected vcalendar string.
@@ -153,7 +146,8 @@ class CalendarDownloadUtilTest extends UnitTestCase {
    * @return \ReflectionMethod
    *   The protected method which is now accessible.
    */
-  private function getProtectedPropertyViaReflection(string $className, string $methodName) {
+  private function getProtectedPropertyViaReflection(string $className,
+                                                     string $methodName) {
     $method = new \ReflectionMethod($className, $methodName);
     $method->setAccessible(TRUE);
     return $method;
@@ -162,7 +156,7 @@ class CalendarDownloadUtilTest extends UnitTestCase {
   /**
    * A data provider.
    *
-   * @return \PHPUnit_Framework_MockObject_MockObject
+   * @return \PHPUnit_Framework_MockObject_MockObject[]
    *   The mock object for Symfony\Component\HttpFoundation\Request.
    */
   public function schemeHttpHostProvider() {
@@ -183,15 +177,13 @@ class CalendarDownloadUtilTest extends UnitTestCase {
       );
 
       $requestMock->method('getScheme')
-        ->will($this->returnValue($scheme));
+                  ->will($this->returnValue($scheme));
       $requestMock->method('getSchemeAndHttpHost')
-        ->will($this->returnValue($schemeAndHttpHost));
+                  ->will($this->returnValue($schemeAndHttpHost));
 
       $dataProvidedArray[$host] = [$requestMock];
     }
     return $dataProvidedArray;
   }
-
-
 
 }

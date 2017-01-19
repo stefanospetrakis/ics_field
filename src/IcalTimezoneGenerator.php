@@ -8,6 +8,7 @@
 
 namespace Drupal\px_calendar_download;
 
+use Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException;
 use Eluceo\iCal\Component\Timezone;
 use Eluceo\iCal\Component\TimezoneRule;
 
@@ -38,6 +39,7 @@ class IcalTimezoneGenerator {
    *   depending on the user's timezone.
    *
    * @return Timezone The modified timezone object.
+   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
    *
    * @throws \InvalidArgumentException
    */
@@ -45,6 +47,7 @@ class IcalTimezoneGenerator {
                                            $dateList) {
 
     list($from, $to) = $this->getMinMaxTimestamps($dateList);
+    list($from, $to) = $this->adjustTimestampsByAYear($from,$to);
 
     // Get all transitions for one year back/ahead.
     $dateTimeZone = new \DateTimeZone($iCalendarTimezone->getZoneIdentifier());
@@ -77,6 +80,38 @@ class IcalTimezoneGenerator {
    */
   public function getTimestampFormat() {
     return $this->timestampFormat;
+  }
+
+  /**
+   * @param array $datesList
+   *
+   * @return \DateTime[]
+   * @throws \Drupal\px_calendar_download\Exception\IcalTimezoneInvalidTimestampException
+   */
+  public function getMinMaxTimestamps(array $datesList) {
+
+    $min = \DateTime::createFromFormat($this->timestampFormat,
+                                       array_pop($datesList));
+    if (!$min) {
+      throw new IcalTimezoneInvalidTimestampException('timestap format does not match ' .
+                                                      $this->timestampFormat);
+    }
+    $max = clone $min;
+
+    foreach ($datesList as $stamp) {
+      $timestamp = \DateTime::createFromFormat($this->timestampFormat, $stamp);
+      if ($timestamp > $max) {
+        $max = $timestamp;
+      }
+      if ($timestamp < $min) {
+        $min = $timestamp;
+      }
+    }
+    return [$min, $max];
+  }
+
+  private function adjustTimestampsByAYear(\DateTime $from, \DateTime $to){
+    return [$from->sub(new \DateInterval('P1Y')),$to->add(new \DateInterval('P1Y'))];
   }
 
   /**
@@ -141,31 +176,6 @@ class IcalTimezoneGenerator {
                    floor($offset),
                    ($offset - floor($offset)) * 60
     );
-  }
-
-  /**
-   * @param array $datesList
-   *
-   * @return \DateTime[]
-   */
-  private function getMinMaxTimestamps(array $datesList) {
-
-    $min = \DateTime::createFromFormat($this->timestampFormat,
-                                       array_pop($datesList));
-    $max = clone $min;
-
-    foreach ($datesList as $stamp) {
-      $timestamp = \DateTime::createFromFormat($this->timestampFormat, $stamp);
-      if ($timestamp > $max) {
-        $max = $timestamp;
-      }
-      if ($timestamp < $min) {
-        $min = $timestamp;
-      }
-    }
-    $min->sub(new \DateInterval('P1Y'));
-    $max->add(new \DateInterval('P1Y'));
-    return [$min, $max];
   }
 
 }
