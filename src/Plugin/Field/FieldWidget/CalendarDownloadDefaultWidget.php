@@ -215,7 +215,12 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   public function massageFormValues(array $values,
                                     array $form,
                                     FormStateInterface $formState) {
-
+    /*
+     * TODO - all this save stuff should be done closer to the entity and the file should be managed
+     * For an example look at the way the ImageField and FileField widgets work
+     * Checking the validation state here is a workaround for the architecture of the field
+     * trying to save the .ics file at this point, to ensure it does not save it twice
+     */
     if ($formState->isValidationComplete()) {
       $contentEntity = $this->getContentEntityFromForm($formState);
       if ($contentEntity) {
