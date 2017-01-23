@@ -37,14 +37,12 @@ class ICalTimezoneGenerator {
    * @param Timezone $iCalendarTimezone
    *   An incoming timezone that we may modify by adding component rules,
    *   depending on the user's timezone.
+   * @param array    $dateList
    *
-   * @return Timezone The modified timezone object.
-   *
-   * @throws \Drupal\ics_field\Exception\IcalTimezoneInvalidTimestampException
-   * @throws \InvalidArgumentException
+   * @return \Eluceo\iCal\Component\Timezone The modified timezone object.
    */
   public function applyTimezoneTransitions(Timezone $iCalendarTimezone,
-                                           $dateList) {
+                                           array $dateList) {
 
     list($from, $to) = $this->getMinMaxTimestamps($dateList);
     list($from, $to) = $this->adjustTimestampsByAYear($from, $to);

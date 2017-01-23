@@ -137,6 +137,8 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
                               array $element,
                               array &$form,
                               FormStateInterface $formState) {
+
+    $fieldConfig = $this->isFieldConfigForm($formState);
     $fieldDefinitions = $this->getEntityFieldDefinitions();
     $element['summary'] = [
       '#type'          => 'textfield',
@@ -144,6 +146,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       '#title'         => t('Summary'),
       '#default_value' => isset($items[$delta]->summary) ?
         $items[$delta]->summary : NULL,
+      '#required'      => !$fieldConfig,
     ];
     $element['description'] = [
       '#type'          => 'textarea',
@@ -151,6 +154,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
       '#title'         => t('Description'),
       '#default_value' => isset($items[$delta]->description) ?
         $items[$delta]->description : NULL,
+      '#required'      => !$fieldConfig,
     ];
     $element['url'] = [
       '#type'          => 'textfield',
@@ -188,6 +192,17 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   }
 
   /**
+   * @param \Drupal\Core\Form\FormStateInterface $formState
+   *
+   * @return bool
+   */
+  private function isFieldConfigForm(FormStateInterface $formState){
+
+    $build = $formState->getBuildInfo();
+    return $build['base_form_id'] === 'field_config_form';
+  }
+
+  /**
    * {@inheritdoc}
    *
    * @brief: Create/Update the referenced file.
@@ -204,7 +219,9 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     if ($contentEntity) {
       $contentEntity = $this->makeUpdatedEntityCopy($formState, $contentEntity);
       foreach ($values as $key => &$value) {
-        $value['fileref'] = $this->updateManagedCalFile($value, $contentEntity);
+        //we need to do a test here and convert null to 0. because of the entity contraints
+        $ref = $this->updateManagedCalFile($value, $contentEntity);
+        $value['fileref'] = ($ref === NULL) ? 0 : $ref;
       }
     }
     return $values;
