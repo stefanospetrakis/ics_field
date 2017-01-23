@@ -13,6 +13,12 @@
       "email": "stefanos.petrakis@gmail.com",
       "homepage": "https://github.com/stefanospetrakis",
       "role": "Developer"
+    },
+    {
+      "name": "Tom Whiston",
+      "email": "tom.whiston@pwc-digital.ch",
+      "homepage": "https://github.com/twhiston",
+      "role": "Developer/Reviewer"
     }
   ],
   "require": {
