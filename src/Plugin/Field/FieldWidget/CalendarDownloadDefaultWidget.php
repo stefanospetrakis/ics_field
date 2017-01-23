@@ -196,7 +196,7 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
    *
    * @return bool
    */
-  private function isFieldConfigForm(FormStateInterface $formState){
+  private function isFieldConfigForm(FormStateInterface $formState) {
 
     $build = $formState->getBuildInfo();
     return $build['base_form_id'] === 'field_config_form';
@@ -215,13 +215,17 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   public function massageFormValues(array $values,
                                     array $form,
                                     FormStateInterface $formState) {
-    $contentEntity = $this->getContentEntityFromForm($formState);
-    if ($contentEntity) {
-      $contentEntity = $this->makeUpdatedEntityCopy($formState, $contentEntity);
-      foreach ($values as $key => &$value) {
-        //we need to do a test here and convert null to 0. because of the entity contraints
-        $ref = $this->updateManagedCalFile($value, $contentEntity);
-        $value['fileref'] = ($ref === NULL) ? 0 : $ref;
+
+    if ($formState->isValidationComplete()) {
+      $contentEntity = $this->getContentEntityFromForm($formState);
+      if ($contentEntity) {
+        $contentEntity = $this->makeUpdatedEntityCopy($formState,
+                                                      $contentEntity);
+        foreach ($values as $key => &$value) {
+          //we need to do a test here and convert null to 0. because of the entity contraints
+          $ref = $this->updateManagedCalFile($value, $contentEntity);
+          $value['fileref'] = ($ref === NULL) ? 0 : $ref;
+        }
       }
     }
     return $values;
@@ -343,7 +347,11 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
     $fileDirectory = $this->fieldDefinition->getSetting('file_directory');
     $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                    $fileDirectory);
-    if (file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
+    if (!is_dir($uploadLocation)) {
+      //Don't check anything about the return because it will fail on trying to create anyway if there is a problem
+      file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY);
+    }
+    if (file_prepare_directory($uploadLocation, FILE_MODIFY_PERMISSIONS)) {
       $fileName = md5($contentEntity->uuid() .
                       $this->fieldDefinition->getConfig($this->fieldDefinition->getTargetBundle())
                                             ->uuid()) .
