@@ -215,13 +215,17 @@ class CalendarDownloadDefaultWidget extends WidgetBase implements ContainerFacto
   public function massageFormValues(array $values,
                                     array $form,
                                     FormStateInterface $formState) {
-    $contentEntity = $this->getContentEntityFromForm($formState);
-    if ($contentEntity) {
-      $contentEntity = $this->makeUpdatedEntityCopy($formState, $contentEntity);
-      foreach ($values as $key => &$value) {
-        //we need to do a test here and convert null to 0. because of the entity contraints
-        $ref = $this->updateManagedCalFile($value, $contentEntity);
-        $value['fileref'] = ($ref === NULL) ? 0 : $ref;
+
+    if ($formState->isValidationComplete()) {
+      $contentEntity = $this->getContentEntityFromForm($formState);
+      if ($contentEntity) {
+        $contentEntity = $this->makeUpdatedEntityCopy($formState,
+                                                      $contentEntity);
+        foreach ($values as $key => &$value) {
+          //we need to do a test here and convert null to 0. because of the entity contraints
+          $ref = $this->updateManagedCalFile($value, $contentEntity);
+          $value['fileref'] = ($ref === NULL) ? 0 : $ref;
+        }
       }
     }
     return $values;
