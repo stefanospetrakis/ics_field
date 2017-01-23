@@ -20,8 +20,8 @@ use Drupal\Core\TypedData\TypedDataInterface;
  *   id = "calendar_download_type",
  *   label = @Translation("Calendar download"),
  *   category = @Translation("Media"),
- *   description = @Translation("Provides a dynamically generated .ics file download"),
- *   default_widget = "calendar_download_default_widget",
+ *   description = @Translation("Provides a dynamically generated .ics file
+ *   download"), default_widget = "calendar_download_default_widget",
  *   default_formatter = "calendar_download_default_formatter"
  * )
  */
@@ -159,6 +159,14 @@ class CalendarDownloadType extends FieldItemBase {
       '#default_value' => $this->getSetting('date_field_reference') ?: '',
       '#description'   => $this->t('Select the date field that will define when the calendar\'s events take place.'),
     ];
+
+    $elements['file_directory'] = [
+      '#type'          => 'textfield',
+      '#title'         => $this->t('File directory'),
+      '#description'   => 'Optional subdirectory within the upload destination where files will be stored. Do not include preceding or trailing slashes. This field supports tokens.',
+      '#default_value' => $this->getSetting('file_directory') ?: 'icsfiles',
+    ];
+
     $form['#validate'][] = [$this, 'checkWriteableDirectory'];
 
     return $elements;
@@ -176,7 +184,7 @@ class CalendarDownloadType extends FieldItemBase {
   }
 
   /**
-   * A function that checks if the default directory for ics files is writeable.
+   * A function that checks if the default directory for ics files is writable.
    *
    * @param array                                $element
    * @param \Drupal\Core\Form\FormStateInterface $formState
@@ -184,9 +192,10 @@ class CalendarDownloadType extends FieldItemBase {
   public function checkWriteableDirectory(array $element,
                                           FormStateInterface $formState) {
     $uriScheme = $this->getSetting('uri_scheme');
-    $fileDirectory = $this->getSetting('file_directory');
+    $fileDirectory = $formState->getValue(['settings', 'file_directory']);
     $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                    $fileDirectory);
+
     if (!file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
       $formState->setError($element,
                            $this->t('Cannot create folder for ics files [@upload_location]',
