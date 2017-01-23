@@ -20,8 +20,8 @@ use Drupal\Core\TypedData\TypedDataInterface;
  *   id = "calendar_download_type",
  *   label = @Translation("Calendar download"),
  *   category = @Translation("Media"),
- *   description = @Translation("Provides a dynamically generated .ics file
- *   download"), default_widget = "calendar_download_default_widget",
+ *   description = @Translation("Provides a dynamically generated .ics file download"),
+ *   default_widget = "calendar_download_default_widget",
  *   default_formatter = "calendar_download_default_formatter"
  * )
  */
