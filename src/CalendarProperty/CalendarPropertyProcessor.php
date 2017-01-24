@@ -133,10 +133,13 @@ class CalendarPropertyProcessor {
     if (!empty($this->dateFieldReference)) {
       foreach ($contentEntity->get($this->dateFieldReference)
                              ->getValue() as $dateVal) {
+        // TODO: Remove the check for DrupalDateTime, this should now be a date rendered as a string
         if (!$dateVal['value'] instanceof DrupalDateTime) {
-          continue;
+          $calendarProperties[] = $dateVal['value'];
         }
-        $calendarProperties[] = $dateVal['value']->render();
+        else{
+          $calendarProperties[] = $dateVal['value']->render();
+        }
       }
     }
     return $calendarProperties;
