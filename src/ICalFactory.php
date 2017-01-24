@@ -81,7 +81,8 @@ class ICalFactory {
    * @throws \UnexpectedValueException
    */
   public function generate(array $calendarProperties,
-                           Request $request) {
+                           Request $request,
+                           string $timeStampFormat = NULL) {
 
     $this->calendarProperties = $calendarProperties;
     $this->request = $request;
@@ -92,6 +93,9 @@ class ICalFactory {
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
 
     $tg = new ICalTimezoneGenerator();
+    if ($timeStampFormat) {
+      $tg->setTimestampFormat($timeStampFormat);
+    }
 
     /** @var Timezone $trans */
     $trans = $tg->applyTimezoneTransitions($iCalendarTimezone,
