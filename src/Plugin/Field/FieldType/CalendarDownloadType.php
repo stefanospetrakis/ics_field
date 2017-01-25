@@ -137,7 +137,7 @@ class CalendarDownloadType extends FieldItemBase {
   /**
    * Execute actions after the entity containing the field is saved.
    *
-   * We use this to create a new entry in  the file_usage table,
+   * We use this to create a new entry in the file_usage table,
    * linking the new entity with the generated managed ics file.
    *
    * @param boolean $update
@@ -152,6 +152,21 @@ class CalendarDownloadType extends FieldItemBase {
       $this->fileUsageService->add($file, 'ics_field', 'node', $entity->id());
     }
     parent::postSave($update);
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to remove an entry from the file_usage table.
+   * This should cause the file to be deleted during the next cron run,
+   * taking system.file.yml:temporary_maximum_age into account.
+   */
+  public function delete() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $file = File::load($this->get('fileref')->getValue());
+    $this->fileUsageService->delete($file, 'ics_field', 'node', $entity->id());
   }
 
   /**
