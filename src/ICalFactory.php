@@ -82,7 +82,7 @@ class ICalFactory {
    */
   public function generate(array $calendarProperties,
                            Request $request,
-                           string $timeStampFormat = NULL) {
+                           $timeStampFormat = NULL) {
 
     $this->calendarProperties = $calendarProperties;
     $this->request = $request;
