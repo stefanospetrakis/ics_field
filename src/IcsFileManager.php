@@ -201,7 +201,6 @@ class IcsFileManager {
                              $fileUri,
                              FILE_EXISTS_REPLACE);
       if ($file) {
-        $this->declareNodeFileUsage($file->id(), $contentEntity->id());
         return $file->id();
       }
 
@@ -232,19 +231,6 @@ class IcsFileManager {
     $msg = 'Could not access calendar directory: ' . $uri;
     drupal_set_message($msg, 'error');
     $this->logger->error($msg);
-  }
-
-  /**
-   * Add an entry to file_usage.
-   *
-   * @param int $fileId
-   *   Incoming file id.
-   * @param int $nodeId
-   *   Related node id.
-   */
-  private function declareNodeFileUsage($fileId, $nodeId) {
-    $file = File::load($fileId);
-    $this->fileUsageService->add($file, 'ics_field', 'node', $nodeId);
   }
 
 }

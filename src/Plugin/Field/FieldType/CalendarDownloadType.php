@@ -12,6 +12,9 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Core\Utility\Token;
+use Drupal\file\FileUsage\FileUsageInterface;
+use Drupal\file\Entity\File;
 
 /**
  * Plugin implementation of the 'calendar_download_type' field type.
@@ -37,14 +40,23 @@ class CalendarDownloadType extends FieldItemBase {
   protected $tokenService;
 
   /**
+   * The file.usage service.
+   *
+   * @var \Drupal\file\FileUsage\FileUsageInterface
+   */
+  protected $fileUsageService;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(DataDefinitionInterface $definition,
                               $name = NULL,
                               TypedDataInterface $parent = NULL,
-                              $tokenService) {
+                              Token $tokenService,
+                              FileUsageInterface $fileUsageService) {
     parent::__construct($definition, $name, $parent);
     $this->tokenService = $tokenService;
+    $this->fileUsageService = $fileUsageService;
   }
 
   /**
@@ -57,7 +69,8 @@ class CalendarDownloadType extends FieldItemBase {
       $definition,
       $name,
       $parent,
-      \Drupal::token()
+      \Drupal::token(),
+      \Drupal::service('file.usage')
     );
   }
 
@@ -93,6 +106,26 @@ class CalendarDownloadType extends FieldItemBase {
                                            ->setLabel(new TranslatableMarkup('ics File reference'));
 
     return $properties;
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to create a new entry in  the file_usage table,
+   * linking the new entity with the generated managed ics file.
+   *
+   * @param boolean $update
+   *   A flag showing if this is an entity create or update.
+   */
+  public function postSave($update) {
+    if (!$update) {
+      // The current fielditem belongs to a fielditemlist,
+      // that in turn belongs to a fieldable entity.
+      $entity = $this->getParent()->getParent()->getValue();
+      $file = File::load($this->get('fileref')->getValue());
+      $this->fileUsageService->add($file, 'ics_field', 'node', $entity->id());
+    }
+    parent::postSave($update);
   }
 
   /**
