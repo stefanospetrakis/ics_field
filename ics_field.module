@@ -27,13 +27,3 @@ function ics_field_help($routeName,
     default:
   }
 }
-
-/**
- * Implements hook_entity_presave().
- */
-function ics_field_entity_presave(EntityInterface $entity) {
-  if ($entity instanceof ContentEntityInterface && $entity->getEntityTypeId() == 'node') {
-    $icsFileManager = \Drupal::service('ics_field.file_manager');
-    $icsFileManager->updateFileField($entity);
-  }
-}

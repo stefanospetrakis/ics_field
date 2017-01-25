@@ -15,6 +15,7 @@ use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Utility\Token;
 use Drupal\file\FileUsage\FileUsageInterface;
 use Drupal\file\Entity\File;
+use Drupal\ics_field\IcsFileManager;
 
 /**
  * Plugin implementation of the 'calendar_download_type' field type.
@@ -47,16 +48,25 @@ class CalendarDownloadType extends FieldItemBase {
   protected $fileUsageService;
 
   /**
+   * The ics_field.file_manager service.
+   *
+   * @var \Drupal\ics_field\IcsFileManager
+   */
+  protected $icsFileManager;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(DataDefinitionInterface $definition,
                               $name = NULL,
                               TypedDataInterface $parent = NULL,
                               Token $tokenService,
-                              FileUsageInterface $fileUsageService) {
+                              FileUsageInterface $fileUsageService,
+                              IcsFileManager $icsFileManager) {
     parent::__construct($definition, $name, $parent);
     $this->tokenService = $tokenService;
     $this->fileUsageService = $fileUsageService;
+    $this->icsFileManager = $icsFileManager;
   }
 
   /**
@@ -70,7 +80,8 @@ class CalendarDownloadType extends FieldItemBase {
       $name,
       $parent,
       \Drupal::token(),
-      \Drupal::service('file.usage')
+      \Drupal::service('file.usage'),
+      \Drupal::service('ics_field.file_manager')
     );
   }
 
@@ -106,6 +117,21 @@ class CalendarDownloadType extends FieldItemBase {
                                            ->setLabel(new TranslatableMarkup('ics File reference'));
 
     return $properties;
+  }
+
+  /**
+   * Execute actions before the entity containing the field is saved.
+   *
+   * We use this to create a new managed ics file, and
+   * saving the file reference to the generated file.
+   */
+  public function preSave() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $fileref = $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    $this->set('fileref', $fileref);
+    parent::preSave();
   }
 
   /**
