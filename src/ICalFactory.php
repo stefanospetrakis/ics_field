@@ -93,6 +93,7 @@ class ICalFactory {
     $iCalendarTimezone = new Timezone($this->getCalendarProperty('timezone'));
 
     $tg = new ICalTimezoneGenerator();
+    // Overwrite the default value of timeStampFormat property.
     if ($timeStampFormat) {
       $tg->setTimestampFormat($timeStampFormat);
     }
