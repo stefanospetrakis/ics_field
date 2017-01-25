@@ -137,8 +137,8 @@ class CalendarPropertyProcessor {
         if ($dateVal['value'] instanceof DrupalDateTime) {
           $calendarProperties[] = $dateVal['value']->render();
         }
-        // Add only in not empty, see CalendarPropertyProcessorTest@209.
-        else if ($dateVal){
+        // Add only in 'value' is not empty.
+        else if ($dateVal['value']){
           $calendarProperties[] = $dateVal['value'];
         }
       }
