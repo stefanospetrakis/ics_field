@@ -89,47 +89,35 @@ class IcsFileManager {
    * @param ContentEntityBase $contentEntity
    *   Incoming content entity.
    */
-  public function updateFileField(ContentEntityInterface $contentEntity) {
-    $type = $contentEntity->getEntityTypeId();
-    $bundle = $contentEntity->bundle();
-    foreach ($this->entityFieldManager->getFieldDefinitions($type, $bundle) as $fieldConfig) {
-      if ($fieldConfig->getType() == 'calendar_download_type') {
-        $calendarPropertyProcessor = $this->calendarPropertyProcessorFactory->create($fieldConfig);
-        $fieldName = $fieldConfig->getName();
-        $fieldValue = $contentEntity->get($fieldName)->getValue()[0];
-        $tokens = [
-          'summary'     => $fieldValue['summary'],
-          'url'         => $fieldValue['url'],
-          'description' => $fieldValue['description'],
-        ];
-        $calendarProperties = $calendarPropertyProcessor->getCalendarProperties($tokens,
-                                                                                $contentEntity,
-                                                                                $this->request->getHost());
-        $needsUpdate = FALSE;
-        if (!empty($calendarProperties['dates_list'])) {
-          try {
-            $timeStampFormat = 'Y-m-d\TH:i:s';
-            $icsFileStr = $this->iCalFactory->generate($calendarProperties,
-                                                      $this->request,
-                                                      $timeStampFormat);
-            $fieldValue['fileref'] = $this->saveManagedCalendarFile($contentEntity,
-                                                  $fieldConfig,
-                                                  $icsFileStr,
-                                                  isset($fieldValue['fileref']) ?
-                                                    $fieldValue['fileref'] :
-                                                    NULL);
-            $needsUpdate = TRUE;
-          } catch (\Exception $e) {
-            $this->logger->error($e->getMessage());
-          }
-        }
-        if ($needsUpdate) {
-          $contentEntity->set($fieldName, $fieldValue);
-        }
+  public function updateIcalFile(ContentEntityBase $contentEntity, FieldDefinitionInterface $fieldConfig, array $fieldValue) {
+    $calendarPropertyProcessor = $this->calendarPropertyProcessorFactory->create($fieldConfig);
+    $tokens = [
+      'summary'     => $fieldValue['summary'],
+      'url'         => $fieldValue['url'],
+      'description' => $fieldValue['description'],
+    ];
+    $calendarProperties = $calendarPropertyProcessor->getCalendarProperties($tokens,
+                                                                            $contentEntity,
+                                                                            $this->request->getHost());
+    if (!empty($calendarProperties['dates_list'])) {
+      try {
+        $timeStampFormat = 'Y-m-d\TH:i:s';
+        $icsFileStr = $this->iCalFactory->generate($calendarProperties,
+                                                  $this->request,
+                                                  $timeStampFormat);
+        return $this->saveManagedCalendarFile($contentEntity,
+                                              $fieldConfig,
+                                              $icsFileStr,
+                                              isset($fieldValue['fileref']) ?
+                                                $fieldValue['fileref'] :
+                                                NULL);
+      } catch (\Exception $e) {
+        $this->logger->error($e->getMessage());
       }
     }
+    return NULL;
   }
-    
+
   /**
    * Create/Update managed ical file.
    *
@@ -211,7 +199,6 @@ class IcsFileManager {
 
     return NULL;
   }
-
 
   /**
    * @param string $fileUri
