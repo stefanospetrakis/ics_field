@@ -12,6 +12,10 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Core\Utility\Token;
+use Drupal\file\FileUsage\FileUsageInterface;
+use Drupal\file\Entity\File;
+use Drupal\ics_field\IcsFileManager;
 
 /**
  * Plugin implementation of the 'calendar_download_type' field type.
@@ -37,14 +41,32 @@ class CalendarDownloadType extends FieldItemBase {
   protected $tokenService;
 
   /**
+   * The file.usage service.
+   *
+   * @var \Drupal\file\FileUsage\FileUsageInterface
+   */
+  protected $fileUsageService;
+
+  /**
+   * The ics_field.file_manager service.
+   *
+   * @var \Drupal\ics_field\IcsFileManager
+   */
+  protected $icsFileManager;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(DataDefinitionInterface $definition,
                               $name = NULL,
                               TypedDataInterface $parent = NULL,
-                              $tokenService) {
+                              Token $tokenService,
+                              FileUsageInterface $fileUsageService,
+                              IcsFileManager $icsFileManager) {
     parent::__construct($definition, $name, $parent);
     $this->tokenService = $tokenService;
+    $this->fileUsageService = $fileUsageService;
+    $this->icsFileManager = $icsFileManager;
   }
 
   /**
@@ -57,7 +79,9 @@ class CalendarDownloadType extends FieldItemBase {
       $definition,
       $name,
       $parent,
-      \Drupal::token()
+      \Drupal::token(),
+      \Drupal::service('file.usage'),
+      \Drupal::service('ics_field.file_manager')
     );
   }
 
@@ -93,6 +117,56 @@ class CalendarDownloadType extends FieldItemBase {
                                            ->setLabel(new TranslatableMarkup('ics File reference'));
 
     return $properties;
+  }
+
+  /**
+   * Execute actions before the entity containing the field is saved.
+   *
+   * We use this to create a new managed ics file, and
+   * saving the file reference to the generated file.
+   */
+  public function preSave() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $fileref = $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    $this->set('fileref', $fileref);
+    parent::preSave();
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to create a new entry in the file_usage table,
+   * linking the new entity with the generated managed ics file.
+   *
+   * @param boolean $update
+   *   A flag showing if this is an entity create or update.
+   */
+  public function postSave($update) {
+    if (!$update) {
+      // The current fielditem belongs to a fielditemlist,
+      // that in turn belongs to a fieldable entity.
+      $entity = $this->getParent()->getParent()->getValue();
+      $file = File::load($this->get('fileref')->getValue());
+      $this->fileUsageService->add($file, 'ics_field', 'node', $entity->id());
+    }
+    parent::postSave($update);
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to remove an entry from the file_usage table.
+   * This should cause the file to be deleted during the next cron run,
+   * taking system.file.yml:temporary_maximum_age into account.
+   */
+  public function delete() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $file = File::load($this->get('fileref')->getValue());
+    $this->fileUsageService->delete($file, 'ics_field', 'node', $entity->id());
   }
 
   /**
@@ -159,6 +233,14 @@ class CalendarDownloadType extends FieldItemBase {
       '#default_value' => $this->getSetting('date_field_reference') ?: '',
       '#description'   => $this->t('Select the date field that will define when the calendar\'s events take place.'),
     ];
+
+    $elements['file_directory'] = [
+      '#type'          => 'textfield',
+      '#title'         => $this->t('File directory'),
+      '#description'   => 'Optional subdirectory within the upload destination where files will be stored. Do not include preceding or trailing slashes. This field supports tokens.',
+      '#default_value' => $this->getSetting('file_directory') ?: 'icsfiles',
+    ];
+
     $form['#validate'][] = [$this, 'checkWriteableDirectory'];
 
     return $elements;
@@ -176,7 +258,7 @@ class CalendarDownloadType extends FieldItemBase {
   }
 
   /**
-   * A function that checks if the default directory for ics files is writeable.
+   * A function that checks if the default directory for ics files is writable.
    *
    * @param array                                $element
    * @param \Drupal\Core\Form\FormStateInterface $formState
@@ -184,9 +266,10 @@ class CalendarDownloadType extends FieldItemBase {
   public function checkWriteableDirectory(array $element,
                                           FormStateInterface $formState) {
     $uriScheme = $this->getSetting('uri_scheme');
-    $fileDirectory = $this->getSetting('file_directory');
+    $fileDirectory = $formState->getValue(['settings', 'file_directory']);
     $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                    $fileDirectory);
+
     if (!file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY)) {
       $formState->setError($element,
                            $this->t('Cannot create folder for ics files [@upload_location]',

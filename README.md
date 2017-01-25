@@ -48,11 +48,15 @@ are important:
 
 1. It assumes that the process through which Drupal is run has file and folder
 create permissions for the public:// filesystem. It will store all ics files
-into the public://icsfiles folder, and when not found it will try to create it.
+into the public://icsfiles folder if a user specified folder is not given,
+and when not found it will try to create it.
 
 2. When adding a Calendar Dowload field to a content type, you are required to
 select a Datetime field from the same content type. That relation will allow
 the Calendar Download module to decide when generated events occur.
+
+3. The field makes an ~UNMANAGED~ copy of the file
+
 
 
 USE OF TOKENS
