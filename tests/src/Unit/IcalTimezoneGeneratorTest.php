@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: twhiston
- * Date: 19.01.17
- * Time: 00:05
- */
 
 namespace Drupal\Tests\ics_field\Unit;
 

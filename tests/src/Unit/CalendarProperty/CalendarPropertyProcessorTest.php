@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: twhiston
- * Date: 18.01.17
- * Time: 21:48
- */
 
 namespace Drupal\Tests\ics_field\Unit\CalendarProperty;
 
@@ -49,13 +43,13 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
    * Tests calendar properties validation.
    *
    * We just test that it throws an error when it needs to,
-   * and not that the drupal translation string service does its job properly
-   * Because we mock the service we just return the unprocessed input
+   * and not that the drupal translation string service does its job properly.
+   * Because we mock the service we just return the unprocessed input.
    *
    * @expectedException \Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException
    * @expectedExceptionMessageRegExp /Missing needed property \w+/
    *
-   * @dataProvider                   propertyProvider
+   * @dataProvider propertyProvider
    */
   public function testCheckPropertiesMissingProperty($property) {
 
@@ -124,8 +118,10 @@ class CalendarPropertyProcessorTest extends UnitTestCase {
   }
 
   /**
+   * Provides an array of calendar properties arrays.
+   *
    * Data Provider building is done before set up, so we must also construct a
-   * CPP here to get the essential properties
+   * CPP here to get the essential properties.
    *
    * @return array
    */

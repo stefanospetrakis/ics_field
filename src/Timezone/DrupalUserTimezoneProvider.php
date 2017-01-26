@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: twhiston
- * Date: 18.01.17
- * Time: 22:11
- */
 
 namespace Drupal\ics_field\Timezone;
 
@@ -16,7 +10,7 @@ class DrupalUserTimezoneProvider implements TimezoneProviderInterface {
    * This sucks as it uses a lot of hidden dependencies,
    * but altering it will significantly change the achitecture of the module
    * so we will live with it for now. This is definitely something that could
-   * be improved though
+   * be improved though.
    *
    * @inheritDoc
    */

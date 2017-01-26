@@ -140,7 +140,7 @@ class CalendarDownloadType extends FieldItemBase {
    * We use this to create a new entry in the file_usage table,
    * linking the new entity with the generated managed ics file.
    *
-   * @param boolean $update
+   * @param bool $update
    *   A flag showing if this is an entity create or update.
    */
   public function postSave($update) {
