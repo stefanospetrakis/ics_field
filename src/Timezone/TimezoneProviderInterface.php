@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: twhiston
- * Date: 18.01.17
- * Time: 22:10
- */
 
 namespace Drupal\ics_field\Timezone;
 

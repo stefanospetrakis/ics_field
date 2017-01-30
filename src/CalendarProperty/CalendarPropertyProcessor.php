@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: twhiston
- * Date: 17.01.17
- * Time: 23:34
- */
 
 namespace Drupal\ics_field\CalendarProperty;
 
@@ -133,10 +127,14 @@ class CalendarPropertyProcessor {
     if (!empty($this->dateFieldReference)) {
       foreach ($contentEntity->get($this->dateFieldReference)
                              ->getValue() as $dateVal) {
-        if (!$dateVal['value'] instanceof DrupalDateTime) {
-          continue;
+        // TODO: Remove the check for DrupalDateTime,should be a string-ed date.
+        if ($dateVal['value'] instanceof DrupalDateTime) {
+          $calendarProperties[] = $dateVal['value']->render();
         }
-        $calendarProperties[] = $dateVal['value']->render();
+        // Add only in 'value' is not empty.
+        elseif ($dateVal['value']) {
+          $calendarProperties[] = $dateVal['value'];
+        }
       }
     }
     return $calendarProperties;

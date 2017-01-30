@@ -12,6 +12,10 @@ use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TraversableTypedDataInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
+use Drupal\Core\Utility\Token;
+use Drupal\file\FileUsage\FileUsageInterface;
+use Drupal\file\Entity\File;
+use Drupal\ics_field\IcsFileManager;
 
 /**
  * Plugin implementation of the 'calendar_download_type' field type.
@@ -37,14 +41,32 @@ class CalendarDownloadType extends FieldItemBase {
   protected $tokenService;
 
   /**
+   * The file.usage service.
+   *
+   * @var \Drupal\file\FileUsage\FileUsageInterface
+   */
+  protected $fileUsageService;
+
+  /**
+   * The ics_field.file_manager service.
+   *
+   * @var \Drupal\ics_field\IcsFileManager
+   */
+  protected $icsFileManager;
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(DataDefinitionInterface $definition,
                               $name = NULL,
                               TypedDataInterface $parent = NULL,
-                              $tokenService) {
+                              Token $tokenService,
+                              FileUsageInterface $fileUsageService,
+                              IcsFileManager $icsFileManager) {
     parent::__construct($definition, $name, $parent);
     $this->tokenService = $tokenService;
+    $this->fileUsageService = $fileUsageService;
+    $this->icsFileManager = $icsFileManager;
   }
 
   /**
@@ -57,7 +79,9 @@ class CalendarDownloadType extends FieldItemBase {
       $definition,
       $name,
       $parent,
-      \Drupal::token()
+      \Drupal::token(),
+      \Drupal::service('file.usage'),
+      \Drupal::service('ics_field.file_manager')
     );
   }
 
@@ -93,6 +117,56 @@ class CalendarDownloadType extends FieldItemBase {
                                            ->setLabel(new TranslatableMarkup('ics File reference'));
 
     return $properties;
+  }
+
+  /**
+   * Execute actions before the entity containing the field is saved.
+   *
+   * We use this to create a new managed ics file, and
+   * saving the file reference to the generated file.
+   */
+  public function preSave() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $fileref = $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    $this->set('fileref', $fileref);
+    parent::preSave();
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to create a new entry in the file_usage table,
+   * linking the new entity with the generated managed ics file.
+   *
+   * @param bool $update
+   *   A flag showing if this is an entity create or update.
+   */
+  public function postSave($update) {
+    if (!$update) {
+      // The current fielditem belongs to a fielditemlist,
+      // that in turn belongs to a fieldable entity.
+      $entity = $this->getParent()->getParent()->getValue();
+      $file = File::load($this->get('fileref')->getValue());
+      $this->fileUsageService->add($file, 'ics_field', 'node', $entity->id());
+    }
+    parent::postSave($update);
+  }
+
+  /**
+   * Execute actions after the entity containing the field is saved.
+   *
+   * We use this to remove an entry from the file_usage table.
+   * This should cause the file to be deleted during the next cron run,
+   * taking system.file.yml:temporary_maximum_age into account.
+   */
+  public function delete() {
+    // The current fielditem belongs to a fielditemlist,
+    // that in turn belongs to a fieldable entity.
+    $entity = $this->getParent()->getParent()->getValue();
+    $file = File::load($this->get('fileref')->getValue());
+    $this->fileUsageService->delete($file, 'ics_field', 'node', $entity->id());
   }
 
   /**
