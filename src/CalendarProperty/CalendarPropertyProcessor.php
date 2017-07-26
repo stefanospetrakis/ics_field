@@ -3,6 +3,7 @@
 namespace Drupal\ics_field\CalendarProperty;
 
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Utility\Token;
 use Drupal\ics_field\Exception\CalendarDownloadInvalidPropertiesException;
@@ -14,6 +15,8 @@ use Drupal\ics_field\Timezone\TimezoneProviderInterface;
  * @package Drupal\ics_field
  */
 class CalendarPropertyProcessor {
+
+  use DependencySerializationTrait;
 
   /**
    * @var \Drupal\Core\Utility\Token
