@@ -6,7 +6,6 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\TypedData\DataDefinitionInterface;
@@ -30,8 +29,6 @@ use Drupal\ics_field\IcsFileManager;
  * )
  */
 class CalendarDownloadType extends FieldItemBase {
-
-  use StringTranslationTrait;
 
   /**
    * The token service.

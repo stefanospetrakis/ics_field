@@ -4,7 +4,7 @@ namespace Drupal\Tests\ics_field\Functional;
 
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\BrowserTestBase;
-use Symfony\Component\DomCrawler\Crawler;
+use GuzzleHttp\Client;
 
 /**
  * Tests that the add/edit Node Forms behaves properly.
@@ -199,14 +199,14 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     if ($icalValidationUrl) {
       // Send a post to the ical_validation_url,
       // at http://severinghaus.org/projects/icv/
-      $httpClient = \Drupal::httpClient();
+      $httpClient = new Client();
       $postArray = [
         'form_params' => ['snip' => $icsString],
       ];
       $response = $httpClient->post($icalValidationUrl, $postArray);
-      $crawler = new Crawler($response->getBody()->getContents());
-      $this->assertEquals(1, $crawler->filter('div.message.success')->count());
-    } else {
+      $this->assertNotEquals(FALSE, strpos($response->getBody()->getContents(), 'Congratulations; your calendar validated!'));
+    }
+    else {
       // TODO Implement some local validation.
       // This would imply a need some local code iCal parsing library to
       // validate the generated string.
