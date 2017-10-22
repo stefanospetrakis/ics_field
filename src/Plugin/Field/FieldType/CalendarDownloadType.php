@@ -87,11 +87,11 @@ class CalendarDownloadType extends FieldItemBase {
    */
   public static function defaultStorageSettings() {
     return [
-             'is_ascii'             => FALSE,
-             'uri_scheme'           => 'public',
-             'file_directory'       => 'icsfiles',
-             'date_field_reference' => NULL,
-           ] + parent::defaultStorageSettings();
+      'is_ascii'             => FALSE,
+      'uri_scheme'           => 'public',
+      'file_directory'       => 'icsfiles',
+      'date_field_reference' => NULL,
+    ] + parent::defaultStorageSettings();
   }
 
   /**
@@ -102,16 +102,16 @@ class CalendarDownloadType extends FieldItemBase {
   public static function propertyDefinitions(FieldStorageDefinitionInterface $fieldDefinition) {
     // Prevent early t() calls by using the TranslatableMarkup.
     $properties['summary'] = DataDefinition::create('string')
-                                           ->setLabel(new TranslatableMarkup('Summary'))
-                                           ->setRequired(TRUE);
+      ->setLabel(new TranslatableMarkup('Summary'))
+      ->setRequired(TRUE);
     $properties['description'] = DataDefinition::create('string')
-                                               ->setLabel(new TranslatableMarkup('Description'))
-                                               ->setRequired(TRUE);
+      ->setLabel(new TranslatableMarkup('Description'))
+      ->setRequired(TRUE);
     $properties['url'] = DataDefinition::create('string')
-                                       ->setLabel(new TranslatableMarkup('URL'));
+      ->setLabel(new TranslatableMarkup('URL'));
     $properties['fileref'] = DataDefinition::create('string')
-                                           ->setComputed(TRUE)
-                                           ->setLabel(new TranslatableMarkup('ics File reference'));
+      ->setComputed(TRUE)
+      ->setLabel(new TranslatableMarkup('ics File reference'));
 
     return $properties;
   }
@@ -126,7 +126,18 @@ class CalendarDownloadType extends FieldItemBase {
     // The current fielditem belongs to a fielditemlist,
     // that in turn belongs to a fieldable entity.
     $entity = $this->getParent()->getParent()->getValue();
-    $fileref = $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    if ($entity->isNew()) {
+      // We can't directly create the file, if this is a new entity, since some
+      // token values, that might be used in the field settings, such as entity
+      // url, rely on the entity id and are thus only available after the entity
+      // has been saved. Thus we'll create an empty file now so that we can save
+      // the file id and update the file with the correct content during
+      // postSave().
+      $fileref = $this->icsFileManager->createIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    }
+    else {
+      $fileref = $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
+    }
     $this->set('fileref', $fileref);
     parent::preSave();
   }
@@ -145,6 +156,7 @@ class CalendarDownloadType extends FieldItemBase {
       // The current fielditem belongs to a fielditemlist,
       // that in turn belongs to a fieldable entity.
       $entity = $this->getParent()->getParent()->getValue();
+      $this->icsFileManager->updateIcalFile($entity, $this->getFieldDefinition(), $this->getValue());
       $file = File::load($this->get('fileref')->getValue());
       $this->fileUsageService->add($file, 'ics_field', 'node', $entity->id());
     }
@@ -199,7 +211,7 @@ class CalendarDownloadType extends FieldItemBase {
           // If the target entities act as bundles for another entity type,
           // their IDs should not exceed the maximum length for bundles.
           'length'      => $targetTypeInfo->getBundleOf() ?
-            EntityTypeInterface::BUNDLE_MAX_LENGTH : 255,
+          EntityTypeInterface::BUNDLE_MAX_LENGTH : 255,
         ],
       ],
     ];
@@ -257,8 +269,10 @@ class CalendarDownloadType extends FieldItemBase {
   /**
    * A function that checks if the default directory for ics files is writable.
    *
-   * @param array                                $element
+   * @param array $element
+   *   The field element.
    * @param \Drupal\Core\Form\FormStateInterface $formState
+   *   The form state of the form the field element is part of.
    */
   public function checkWriteableDirectory(array $element,
                                           FormStateInterface $formState) {

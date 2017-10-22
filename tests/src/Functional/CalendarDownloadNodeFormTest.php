@@ -66,10 +66,10 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
     $bundle = 'ics_test';
 
     $nodeType = NodeType::create([
-                                   'type'        => $bundle,
-                                   'name'        => 'ics_test',
-                                   'description' => "Use <em>ics_test</em> for  testing ics.",
-                                 ]);
+      'type'        => $bundle,
+      'name'        => 'ics_test',
+      'description' => "Use <em>ics_test</em> for  testing ics.",
+    ]);
     $nodeType->save();
 
     entity_create('field_storage_config',
@@ -101,11 +101,11 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
                                         'type'        => 'calendar_download_type',
                                       ]);
     $fieldIcsDownload->setSettings([
-                                     'date_field_reference' => 'field_dates',
-                                     'is_ascii'             => FALSE,
-                                     'uri_scheme'           => 'public',
-                                     'file_directory'       => 'icsfiles',
-                                   ]);
+      'date_field_reference' => 'field_dates',
+      'is_ascii'             => FALSE,
+      'uri_scheme'           => 'public',
+      'file_directory'       => 'icsfiles',
+    ]);
     $fieldIcsDownload->save();
     entity_create('field_config',
                   [
@@ -177,8 +177,9 @@ class CalendarDownloadNodeFormTest extends BrowserTestBase {
       'field_body[0][value]'               => "Lorem ipsum.",
       'field_ics_download[0][summary]'     => '[node:title]',
       'field_ics_download[0][description]' => '[node:field_body]',
+      'field_ics_download[0][url]'         => '[node:url:absolute]',
     ];
-    $this->drupalPostForm('node/add/ics_test', $add, t('Save and publish'));
+    $this->drupalPostForm('node/add/ics_test', $add, t('Save'));
 
     // Check that the node exists in the database.
     $node = $this->drupalGetNodeByTitle($add['title[0][value]']);

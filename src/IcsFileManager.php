@@ -3,7 +3,6 @@
 namespace Drupal\ics_field;
 
 use Drupal\Core\Entity\ContentEntityBase;
-use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -55,11 +54,15 @@ class IcsFileManager {
   protected $tokenService;
 
   /**
-   * @var CalendarPropertyProcessorFactory
+   * The calendar properties processor factory.
+   *
+   * @var \Drupal\ics_field\CalendarProperty\CalendarPropertyProcessorFactory
    */
   protected $calendarPropertyProcessorFactory;
 
   /**
+   * The iCal factory.
+   *
    * @var ICalFactory
    */
   protected $iCalFactory;
@@ -86,7 +89,11 @@ class IcsFileManager {
   /**
    * Updates a node's ics file(s).
    *
-   * @param ContentEntityBase $contentEntity
+   * @param \Drupal\Core\Entity\ContentEntityBase $contentEntity
+   *   Incoming content entity.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldConfig
+   *   Field configuration.
+   * @param array $fieldValue
    *   Incoming content entity.
    */
   public function updateIcalFile(ContentEntityBase $contentEntity, FieldDefinitionInterface $fieldConfig, array $fieldValue) {
@@ -111,7 +118,8 @@ class IcsFileManager {
                                               isset($fieldValue['fileref']) ?
                                                 $fieldValue['fileref'] :
                                                 NULL);
-      } catch (\Exception $e) {
+      }
+      catch (\Exception $e) {
         $this->logger->error($e->getMessage());
       }
     }
@@ -119,13 +127,56 @@ class IcsFileManager {
   }
 
   /**
+   * Creates an empty ICS file for an entity.
+   *
+   * We can't create the actual contents of an ICS file during pre-save, since
+   * some tokens might rely on the entity id being present (e.g. url) and we
+   * can't save a file during post-save so we'll create an empty file during
+   * pre-save and update it with the actual content later during post-save.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityBase\ContentEntityBase $contentEntity
+   *   Incoming content entity.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldConfig
+   *   Field configuration.
+   * @param array $fieldValue
+   *   Field value.
+   *
+   * @return int|null
+   *   Returns the file id of the created/updated file.
+   */
+  public function createIcalFile(ContentEntityBase $contentEntity, FieldDefinitionInterface $fieldConfig, array $fieldValue) {
+    $calendarPropertyProcessor = $this->calendarPropertyProcessorFactory->create($fieldConfig);
+    // Since we only want to create a file, if the date fields are filled in,
+    // we need to get the calendar properties. We'll use dummy content for the
+    // tokens, because the actual tokens might rely on an entity id being
+    // present, which would cause an exception and we can't just call the
+    // processor without tokens due to its token validation.
+    $tokens = [
+      'summary' => 'dummy',
+      'url' => 'dummy',
+      'description' => 'dummy',
+    ];
+    $calendarProperties = $calendarPropertyProcessor->getCalendarProperties($tokens, $contentEntity, $this->request->getHost());
+    if (!empty($calendarProperties['dates_list'])) {
+      try {
+        return $this->saveManagedCalendarFile($contentEntity, $fieldConfig, '', isset($fieldValue['fileref']) ? $fieldValue['fileref'] : NULL);
+      }
+      catch (\Exception $e) {
+        $this->logger->error($e->getMessage());
+      }
+    }
+  }
+
+  /**
    * Create/Update managed ical file.
    *
-   * @param ContentEntityBase $contentEntity
+   * @param \Drupal\Core\Entity\ContentEntityBase $contentEntity
    *   Incoming content entity.
-   * @param string            $icsFileStr
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldConfig
+   *   Field configuration.
+   * @param string $icsFileStr
    *   The ics file as a string.
-   * @param int               $fileId
+   * @param int $fileId
    *   The file id of the managed ical file.
    *
    * @return int|null
@@ -141,10 +192,15 @@ class IcsFileManager {
   }
 
   /**
-   * @param string $fileId
-   * @param string $icsFileStr
+   * Update managed ical file.
    *
-   * @return mixed
+   * @param string $fileId
+   *   The file ID.
+   * @param string $icsFileStr
+   *   The ics file as a string.
+   *
+   * @return int|null|string
+   *   The file ID.
    */
   private function updateFile($fileId, $icsFileStr) {
 
@@ -153,16 +209,23 @@ class IcsFileManager {
     if (!file_save_data($icsFileStr, $fileUri, FILE_EXISTS_REPLACE)) {
       $this->handleFileSaveError($fileUri);
     }
-    //Always return the file id, so that it retains the reference to the original
-    //even if saving the update fails
+    // Always return the file id, so that it retains the reference to the
+    // original even if saving the update fails.
     return $fileId;
   }
 
   /**
+   * Creates a new managed file.
+   *
    * @param \Drupal\Core\Entity\ContentEntityBase $contentEntity
-   * @param string                                $icsFileStr
+   *   Incoming content entity.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $fieldConfig
+   *   Field configuration.
+   * @param string $icsFileStr
+   *   The ics file as a string.
    *
    * @return int|null|string
+   *   The file ID.
    */
   private function createNewFile(ContentEntityBase $contentEntity,
                                  FieldDefinitionInterface $fieldConfig,
@@ -176,13 +239,14 @@ class IcsFileManager {
     $uploadLocation = $this->tokenService->replace($uriScheme . '://' .
                                                    $fileDirectory);
     if (!is_dir($uploadLocation)) {
-      //Don't check anything about the return because it will fail on trying to create anyway if there is a problem
+      // Don't check anything about the return because it will fail on trying to
+      // create anyway if there is a problem.
       file_prepare_directory($uploadLocation, FILE_CREATE_DIRECTORY);
     }
     if (file_prepare_directory($uploadLocation, FILE_MODIFY_PERMISSIONS)) {
       $fileName = md5($contentEntity->uuid() .
                       $fieldConfig->getConfig($fieldConfig->getTargetBundle())
-                                            ->uuid()) .
+                        ->uuid()) .
                   '_event.ics';
       $fileUri = $uploadLocation . '/' . $fileName;
       $file = file_save_data($icsFileStr,
@@ -193,7 +257,8 @@ class IcsFileManager {
       }
 
       $this->handleFileSaveError($fileUri);
-    } else {
+    }
+    else {
       $this->handleDirectoryError($uploadLocation);
     }
 
@@ -201,6 +266,8 @@ class IcsFileManager {
   }
 
   /**
+   * Handles a save error.
+   *
    * @param string $fileUri
    *   Incoming file uri.
    */
@@ -211,6 +278,8 @@ class IcsFileManager {
   }
 
   /**
+   * Handles a directory error.
+   *
    * @param string $uri
    *   Incoming file uri.
    */
