@@ -93,4 +93,3 @@ We welcome contributions in the following areas
 * Unit tests - Test coverage is currently good but not great.
 
 develop: [ ![Codeship Status for ibrows/drupal_ics_field](https://app.codeship.com/projects/c9426990-6881-0135-a28b-5ec5668067cc/status?branch=develop)](https://app.codeship.com/projects/241363)
-master: [ ![Codeship Status for ibrows/drupal_ics_field](https://app.codeship.com/projects/c9426990-6881-0135-a28b-5ec5668067cc/status?branch=master)](https://app.codeship.com/projects/241363)
